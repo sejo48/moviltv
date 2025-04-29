@@ -219,12 +219,14 @@
         }
          .search-bar button:hover { background-color: var(--border-color); color: var(--text-primary); }
 
-        .item-grid { /* Reutilizado para series/películas */
+        /* Grid Común para Series, Películas, TV y Favoritos */
+        .item-grid, .channel-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Ajustar tamaño mínimo */
-            gap: calc(var(--spacing-unit) * 2);
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Tamaño base más pequeño para grid */
+            gap: calc(var(--spacing-unit) * 1.5); /* Reducir gap */
         }
-        .item-card { /* Reutilizado para series/películas */
+        /* Estilo de Tarjeta Común */
+        .item-card {
             background-color: var(--bg-secondary);
             border-radius: var(--border-radius-sm);
             overflow: hidden;
@@ -232,94 +234,84 @@
             transition: background-color 0.2s ease, transform 0.1s ease;
             display: flex;
             flex-direction: column;
+            position: relative; /* Para el status dot */
         }
         .item-card:hover { background-color: var(--bg-tertiary); }
         .item-card:active { transform: scale(0.97); }
+
+        /* Imagen de la Tarjeta (Series/Películas vs TV/Favoritos) */
+        .item-card .card-image-container {
+            position: relative; /* Para el status dot */
+            width: 100%;
+            background-color: var(--bg-tertiary); /* Fondo mientras carga */
+        }
+        /* Imagen para Series/Películas (Poster) */
+        .item-card.series-card img, .item-card.movie-card img {
+            aspect-ratio: 2 / 3;
+        }
+        /* Imagen para TV/Favoritos (Logo cuadrado/circular) */
+        .item-card.tv-card img {
+            aspect-ratio: 1 / 1; /* Cuadrado para logos */
+            object-fit: cover; /* O contain, dependiendo de los logos */
+            border-radius: 50%; /* Hacer logos circulares */
+            padding: 10%; /* Espacio alrededor del logo */
+            background-color: var(--bg-tertiary); /* Fondo si el logo es transparente */
+        }
+
         .item-card img {
             width: 100%;
             height: auto;
-            aspect-ratio: 2 / 3; /* Poster */
             display: block;
-            background-color: var(--bg-tertiary);
         }
+
+        /* Contenido de Texto de la Tarjeta */
         .item-card .text-content {
-            padding: var(--spacing-unit) calc(var(--spacing-unit) * 1.5);
+            padding: var(--spacing-unit);
+            text-align: center; /* Centrar título */
             flex-grow: 1;
         }
         .item-card h3 {
-            font-size: 1em;
+            font-size: 0.9em; /* Ligeramente más pequeño para grid */
             font-weight: 500;
             color: var(--text-primary);
             line-height: 1.3;
-            margin-bottom: calc(var(--spacing-unit) * 0.5);
             /* Limitar a 2 líneas */
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            min-height: calc(1.3em * 2);
+            min-height: calc(1.3em * 2); /* Espacio para 2 líneas */
         }
+        /* Ocultar descripción en grid para simplicidad */
+        .item-card p { display: none; }
 
-        .channel-list { /* Para TV y Favoritos */
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .channel-list-item {
-            display: flex;
-            align-items: center;
-            background-color: var(--bg-secondary);
-            padding: calc(var(--spacing-unit) * 1.5);
-            border-radius: var(--border-radius-sm);
-            margin-bottom: var(--spacing-unit);
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            gap: calc(var(--spacing-unit) * 1.5);
-        }
-        .channel-list-item:hover { background-color: var(--bg-tertiary); }
-        .channel-list-item:active { transform: scale(0.98); }
-        .channel-list-item.active { background-color: var(--bg-tertiary); border-left: 4px solid var(--accent-color); padding-left: calc(var(--spacing-unit) * 1.5 - 4px); }
-        .channel-list-item img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-            background-color: var(--bg-tertiary);
-            flex-shrink: 0;
-        }
-        .channel-list-item .channel-details {
-            overflow: hidden; /* Para ellipsis */
-            flex-grow: 1;
-        }
-        .channel-list-item .channel-title {
-            font-size: 1.1em;
-            font-weight: 500;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: block; /* Asegurar que ocupa el ancho */
-        }
-        .channel-list-item .channel-desc {
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: block; /* Asegurar que ocupa el ancho */
-        }
-        .channel-list-item .status-dot {
-            width: 10px;
-            height: 10px;
+        /* Status Dot para TV/Favoritos en Grid */
+        .item-card.tv-card .status-dot {
+            position: absolute;
+            bottom: calc(10% + 4px); /* Ajustar posición relativa al padding de la imagen */
+            right: calc(10% + 4px);
+            width: 12px; /* Ligeramente más grande */
+            height: 12px;
             border-radius: 50%;
             background-color: var(--unknown-color);
-            flex-shrink: 0;
-            margin-left: auto; /* Empujar a la derecha */
+            border: 2px solid var(--bg-secondary); /* Borde para contraste */
             transition: background-color 0.3s ease;
+            z-index: 2; /* Encima de la imagen */
         }
-        .channel-list-item .status-dot.online { background-color: var(--success-color); }
-        .channel-list-item .status-dot.offline { background-color: var(--error-color); }
+        .item-card.tv-card .status-dot.online { background-color: var(--success-color); }
+        .item-card.tv-card .status-dot.offline { background-color: var(--error-color); }
+
+        /* Estilo activo para tarjetas en grid */
+        .item-card.active {
+            outline: 2px solid var(--accent-color);
+            outline-offset: -2px; /* Hacia adentro */
+            background-color: var(--bg-tertiary);
+        }
+
+        /* Eliminar estilos específicos de .channel-list-item si ya no se usan */
+        .channel-list { display: none; } /* Ocultar la lista vertical si no se usa */
+
 
         /* --- Vista Reproductor (Común para TV, Series, Películas) --- */
         #playerView {
@@ -506,8 +498,8 @@
             #mainMenuView .menu-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-unit); }
             .menu-button { padding: calc(var(--spacing-unit) * 2); font-size: 1.1em; min-height: 100px; }
             .menu-button i { font-size: 1.8em; }
-            .item-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--spacing-unit); }
-            .item-card h3 { font-size: 0.95em; min-height: calc(1.3em * 2); }
+            .item-grid, .channel-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--spacing-unit); } /* Más pequeño en móvil */
+            .item-card h3 { font-size: 0.85em; min-height: calc(1.3em * 2); }
             .channel-list-item { padding: var(--spacing-unit); gap: var(--spacing-unit); }
             .channel-list-item img { width: 40px; height: 40px; }
             .channel-list-item .channel-title { font-size: 1em; }
@@ -561,8 +553,8 @@
                     <input type="text" id="tvSearchInput" placeholder="Buscar canal..." aria-label="Buscar canal de TV">
                     <button id="tvSearchButton" aria-label="Buscar"><i class="fas fa-search"></i></button>
                 </div>
-                <ul class="channel-list" id="tvChannelList">
-                    </ul>
+                <div class="channel-grid" id="tvChannelList">
+                    </div>
             </div>
 
             <div id="seriesListView" class="view content-list-view">
@@ -579,8 +571,8 @@
 
             <div id="favoritesListView" class="view content-list-view">
                 <h2>Favoritos (TV)</h2>
-                <ul class="channel-list" id="favoritesChannelList">
-                    </ul>
+                 <div class="channel-grid" id="favoritesChannelList">
+                    </div>
             </div>
 
             <div id="playerView" class="view">
@@ -647,23 +639,24 @@
             let currentPlayingMovieIndex = null;
 
             // --- Referencias a Elementos DOM ---
-            // CORRECCIÓN: Usar los IDs exactos del HTML
             const views = {
                 mainMenuView: document.getElementById('mainMenuView'),
                 tvListView: document.getElementById('tvListView'),
                 seriesListView: document.getElementById('seriesListView'),
                 moviesListView: document.getElementById('moviesListView'),
                 favoritesListView: document.getElementById('favoritesListView'),
-                playerView: document.getElementById('playerView'), // Corregido
+                playerView: document.getElementById('playerView'),
             };
             const backButton = document.getElementById('backButton');
             const logoContainer = document.getElementById('logoContainer');
-            const tvChannelListElement = document.getElementById('tvChannelList');
+            // CAMBIO: Referencia al nuevo contenedor de grid para TV
+            const tvChannelGridElement = document.getElementById('tvChannelList');
             const tvSearchInput = document.getElementById('tvSearchInput');
             const tvSearchButton = document.getElementById('tvSearchButton');
             const seriesGridElement = document.getElementById('seriesGrid');
             const moviesGridElement = document.getElementById('moviesGrid');
-            const favoritesChannelListElement = document.getElementById('favoritesChannelList');
+             // CAMBIO: Referencia al nuevo contenedor de grid para Favoritos
+            const favoritesChannelGridElement = document.getElementById('favoritesChannelList');
             const hlsPlayerElement = document.getElementById('hlsPlayer');
             const drivePlayerElement = document.getElementById('drivePlayer');
             const playerMessageElement = document.getElementById('playerMessageElement');
@@ -681,8 +674,8 @@
             const closeErrorCarButton = document.getElementById('closeErrorCarButton');
 
             // --- Verificación Inicial de Elementos Críticos ---
-            // Añadir verificación para los IDs corregidos
-            if (!backButton || !logoContainer || !tvChannelListElement || !seriesGridElement || !moviesGridElement || !favoritesChannelListElement || !hlsPlayerElement || !drivePlayerElement || !playerMessageElement || !loadingOverlay || !errorOverlayCar || !Object.values(views).every(v => v)) {
+            // CAMBIO: Verificar los nuevos contenedores de grid
+            if (!backButton || !logoContainer || !tvChannelGridElement || !seriesGridElement || !moviesGridElement || !favoritesChannelGridElement || !hlsPlayerElement || !drivePlayerElement || !playerMessageElement || !loadingOverlay || !errorOverlayCar || !Object.values(views).every(v => v)) {
                 console.error("Error crítico: Faltan elementos esenciales de la interfaz.");
                 alert("Error al cargar la interfaz. Faltan elementos.");
                 return;
@@ -691,38 +684,19 @@
             // --- Lógica de Navegación ---
             function navigateTo(viewId, data = null) {
                 console.log(`Navegando a: ${viewId}`);
-                // CORRECCIÓN: Usar el ID directamente
                 const targetView = document.getElementById(viewId);
                 if (!targetView) {
                      console.error(`Vista con ID ${viewId} no encontrada.`);
-                     // Intentar buscar por la clave original si falla el ID (fallback temporal)
-                     const fallbackView = views[viewId]; // Buscar por clave como antes
-                     if(fallbackView) {
-                         console.warn(`Fallback: Usando clave '${viewId}' en lugar de ID.`);
-                         // Ya no necesitamos asignar a targetView aquí, se usa directamente el elemento encontrado
-                     } else {
-                         return; // Realmente no se encontró
-                     }
+                     return;
                 }
 
-                // Si no se encontró por ID, usar el fallback si existe
-                const viewToShow = targetView || views[viewId];
-                if (!viewToShow) {
-                    console.error(`Vista '${viewId}' no encontrada ni por ID ni por clave.`);
-                    return;
-                }
-
-
+                const viewToShow = targetView;
                 previousView = currentView;
-                currentView = viewId; // Guardar el ID de la vista actual
+                currentView = viewId;
 
-                // Ocultar todas las vistas (usando los IDs del HTML)
                 document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+                viewToShow.classList.add('active');
 
-                // Mostrar la vista destino
-                viewToShow.classList.add('active'); // Usar el elemento encontrado
-
-                // Configurar botón de volver y logo
                 if (viewId === 'mainMenuView') {
                     backButton.classList.remove('visible');
                     logoContainer.classList.remove('with-back-button');
@@ -731,13 +705,10 @@
                     logoContainer.classList.add('with-back-button');
                 }
 
-                // Detener reproductores si salimos de la vista de reproducción
-                // CORRECCIÓN: Usar el ID guardado en previousView
                 if (previousView === 'playerView' && viewId !== 'playerView') {
                     stopPlayback();
                 }
 
-                // Cargar datos si es necesario al entrar a una vista de lista
                 switch (viewId) {
                     case 'tvListView':
                         if (tvChannels.length === 0) loadTvChannels();
@@ -752,12 +723,10 @@
                     case 'favoritesListView':
                         renderFavoritesList();
                         break;
-                    case 'playerView': // CORREGIDO: Usar el ID
+                    case 'playerView':
                         if (data) setupPlayerView(data);
                         break;
                 }
-
-                // Scroll al inicio de la nueva vista
                 document.querySelector('.app-main')?.scrollTo(0, 0);
             }
 
@@ -780,11 +749,9 @@
                  console.error("Mostrando error:", message);
                  if (errorOverlayCar && errorMessageCar && errorButtonsCar) {
                      errorMessageCar.textContent = message;
-                     // Limpiar botones anteriores (excepto el de cerrar)
                      while (errorButtonsCar.firstChild && errorButtonsCar.firstChild !== closeErrorCarButton) {
                          errorButtonsCar.removeChild(errorButtonsCar.firstChild);
                      }
-                     // Añadir nuevos botones
                      buttonsConfig.forEach(config => {
                          const button = document.createElement('button');
                          button.className = 'error-button';
@@ -793,12 +760,11 @@
                              hideError();
                              if (config.action) config.action();
                          };
-                         // Insertar antes del botón de cerrar
                          errorButtonsCar.insertBefore(button, closeErrorCarButton);
                      });
                      errorOverlayCar.classList.add('visible');
                  } else {
-                     alert(`Error: ${message}`); // Fallback
+                     alert(`Error: ${message}`);
                  }
              }
 
@@ -820,13 +786,13 @@
                     if (tvChannels.length === 0) {
                          showError("No se encontraron canales de TV válidos en la lista.", [{ text: "Recargar", action: loadTvChannels }]);
                     } else {
-                         renderTvChannelList(tvChannels);
+                         renderTvChannelList(tvChannels); // Renderizar en grid
                     }
                 } catch (error) {
                     console.error('Error cargando/parseando M3U:', error);
                     showError(`Error al cargar canales: ${error.message}`, [{ text: "Reintentar", action: loadTvChannels }]);
                     tvChannels = [];
-                    renderTvChannelList([]); // Mostrar lista vacía
+                    renderTvChannelList([]);
                 } finally {
                     hideLoading();
                 }
@@ -862,95 +828,97 @@
                              }
                              if (!currentChannelInfo.title) { currentChannelInfo.title = 'Canal Desconocido'; }
                              currentChannelInfo.logo = currentChannelInfo.attributes['tvg-logo'] || '';
-                             currentChannelInfo.description = currentChannelInfo.attributes['group-title'] || currentChannelInfo.title || ''; // Usar group-title o title como descripción
+                             currentChannelInfo.description = currentChannelInfo.attributes['group-title'] || currentChannelInfo.title || '';
                          } else {
-                             currentChannelInfo = null; // Resetear si la línea EXTINF es inválida
+                             currentChannelInfo = null;
                          }
                      } else if (currentChannelInfo && !trimmedLine.startsWith('#')) {
                          currentChannelInfo.url = trimmedLine;
                          if (currentChannelInfo.url) {
                              parsedChannels.push(currentChannelInfo);
                          }
-                         currentChannelInfo = null; // Resetear después de añadir la URL
+                         currentChannelInfo = null;
                      }
                  }
                  return parsedChannels;
              }
 
-            function renderTvChannelList(channelsToRender, targetElement = tvChannelListElement) {
+            // CAMBIO: Función para renderizar TV/Favoritos en Grid
+            function renderTvChannelList(channelsToRender, targetElement = tvChannelGridElement) {
                 if (!targetElement) return;
-                targetElement.innerHTML = ''; // Limpiar lista
+                targetElement.innerHTML = ''; // Limpiar grid
 
                 if (!channelsToRender || channelsToRender.length === 0) {
-                    targetElement.innerHTML = `<li style="color: var(--text-secondary); text-align: center; padding: calc(var(--spacing-unit) * 4) 0;">${targetElement === favoritesChannelListElement ? 'No hay favoritos.' : 'No se encontraron canales.'}</li>`;
+                    // Mostrar mensaje dentro del grid
+                    const messageElement = document.createElement('p');
+                    messageElement.textContent = targetElement === favoritesChannelGridElement ? 'No hay favoritos.' : 'No se encontraron canales.';
+                    messageElement.style.cssText = "color: var(--text-secondary); text-align: center; grid-column: 1 / -1; padding: calc(var(--spacing-unit) * 4) 0;";
+                    targetElement.appendChild(messageElement);
                     return;
                 }
 
-                // Ordenar: Favoritos primero, luego alfabéticamente
                 const sortedChannels = [...channelsToRender].sort((a, b) => {
                     const aIndex = tvChannels.findIndex(ch => ch.url === a.url);
                     const bIndex = tvChannels.findIndex(ch => ch.url === b.url);
                     const aIsFavorite = tvFavorites.includes(aIndex.toString());
                     const bIsFavorite = tvFavorites.includes(bIndex.toString());
 
-                    if (targetElement !== favoritesChannelListElement) { // No ordenar por favorito en la lista de favoritos
+                    if (targetElement !== favoritesChannelGridElement) {
                         if (aIsFavorite && !bIsFavorite) return -1;
                         if (!aIsFavorite && bIsFavorite) return 1;
                     }
                     return (a.title || '').localeCompare(b.title || '');
                 });
 
-
                 const fragment = document.createDocumentFragment();
                 sortedChannels.forEach(channel => {
                     const originalIndex = tvChannels.findIndex(ch => ch.url === channel.url);
-                    if (originalIndex === -1) return; // Canal no encontrado en la lista original
+                    if (originalIndex === -1) return;
 
-                    const li = document.createElement('li');
-                    li.className = 'channel-list-item';
-                    li.dataset.channelIndex = originalIndex; // Guardar índice original
+                    // Crear tarjeta (item-card)
+                    const card = document.createElement('div');
+                    card.className = 'item-card tv-card'; // Añadir clase específica tv-card
+                    card.dataset.channelIndex = originalIndex;
+
+                    // Contenedor para imagen y status dot
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'card-image-container';
 
                     const img = document.createElement('img');
                     const placeholderText = encodeURIComponent((channel.title || '?').charAt(0));
-                    img.src = channel.logo || `https://placehold.co/50x50/383838/aaaaaa?text=${placeholderText}`;
+                    img.src = channel.logo || `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`; // Placeholder cuadrado
                     img.alt = ''; // Decorativo
-                    img.onerror = () => { img.src = `https://placehold.co/50x50/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${channel.title || 'Canal'}`; };
+                    img.onerror = () => { img.src = `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${channel.title || 'Canal'}`; };
                     img.loading = 'lazy';
 
-                    const detailsDiv = document.createElement('div');
-                    detailsDiv.className = 'channel-details';
-
-                    const titleSpan = document.createElement('span');
-                    titleSpan.className = 'channel-title';
-                    titleSpan.textContent = channel.title || 'Canal sin título';
-
-                    const descSpan = document.createElement('span');
-                    descSpan.className = 'channel-desc';
-                    descSpan.textContent = channel.description || ''; // Mostrar descripción
-
-                    detailsDiv.appendChild(titleSpan);
-                    detailsDiv.appendChild(descSpan);
-
+                    // Status dot
                     const statusDot = document.createElement('span');
                     const currentStatus = tvChannelStatuses[originalIndex];
                     statusDot.className = `status-dot ${currentStatus || ''}`;
                     const statusTitle = currentStatus === 'online' ? 'En línea' : currentStatus === 'offline' ? 'Fuera de línea' : 'Estado desconocido';
                     statusDot.title = statusTitle;
 
-                    li.appendChild(img);
-                    li.appendChild(detailsDiv);
-                    li.appendChild(statusDot);
+                    imageContainer.appendChild(img);
+                    imageContainer.appendChild(statusDot); // Añadir dot al contenedor de imagen
 
-                    li.addEventListener('click', () => {
-                        // CORREGIDO: Usar el ID de la vista del reproductor
+                    // Contenido de texto (título)
+                    const textContent = document.createElement('div');
+                    textContent.className = 'text-content';
+                    const title = document.createElement('h3');
+                    title.textContent = channel.title || 'Canal sin título';
+                    textContent.appendChild(title);
+
+                    card.appendChild(imageContainer);
+                    card.appendChild(textContent);
+
+                    card.addEventListener('click', () => {
                         navigateTo('playerView', { type: 'tv', index: originalIndex });
                     });
 
-                    fragment.appendChild(li);
+                    fragment.appendChild(card);
                 });
                 targetElement.appendChild(fragment);
 
-                // Resaltar canal actual si está en esta lista
                 if (currentPlayingTvChannelIndex !== null) {
                      highlightPlayingChannel(currentPlayingTvChannelIndex, targetElement);
                 }
@@ -958,7 +926,8 @@
 
             function renderFavoritesList() {
                  const favoriteChannelsData = tvChannels.filter((channel, index) => tvFavorites.includes(index.toString()));
-                 renderTvChannelList(favoriteChannelsData, favoritesChannelListElement);
+                 // CAMBIO: Renderizar en el grid de favoritos
+                 renderTvChannelList(favoriteChannelsData, favoritesChannelGridElement);
              }
 
             function filterAndRenderTvChannels() {
@@ -967,7 +936,8 @@
                     (channel.title && channel.title.toLowerCase().includes(searchTerm)) ||
                     (channel.description && channel.description.toLowerCase().includes(searchTerm))
                 );
-                renderTvChannelList(filtered);
+                 // CAMBIO: Renderizar en el grid de TV
+                renderTvChannelList(filtered, tvChannelGridElement);
             }
 
             function updateTvChannelStatus(index, status) {
@@ -977,17 +947,18 @@
                      tvChannelStatuses[index] = status;
                      localStorage.setItem('channelStatusesTvPlayerCar', JSON.stringify(tvChannelStatuses));
                      console.log(`Estado TV actualizado para ${index}: ${status}`);
-                     // Actualizar punto en ambas listas
-                     updateStatusDotInElement(tvChannelListElement, index, status);
-                     updateStatusDotInElement(favoritesChannelListElement, index, status);
+                     // CAMBIO: Actualizar dot en ambos grids
+                     updateStatusDotInElement(tvChannelGridElement, index, status);
+                     updateStatusDotInElement(favoritesChannelGridElement, index, status);
                  }
              }
 
-            function updateStatusDotInElement(listElement, index, status) {
-                 if (!listElement) return;
-                 const listItem = listElement.querySelector(`li[data-channel-index="${index}"]`);
-                 if (listItem) {
-                     const dot = listItem.querySelector('.status-dot');
+            // CAMBIO: Adaptado para buscar el dot dentro de item-card
+            function updateStatusDotInElement(gridElement, index, status) {
+                 if (!gridElement) return;
+                 const cardItem = gridElement.querySelector(`.item-card[data-channel-index="${index}"]`);
+                 if (cardItem) {
+                     const dot = cardItem.querySelector('.status-dot');
                      if (dot) {
                          dot.className = `status-dot ${status || ''}`;
                          const statusTitle = status === 'online' ? 'En línea' : status === 'offline' ? 'Fuera de línea' : 'Estado desconocido';
@@ -996,13 +967,15 @@
                  }
              }
 
-            function highlightPlayingChannel(index, listElement) {
-                 if (!listElement) return;
-                 listElement.querySelectorAll('li.active').forEach(li => li.classList.remove('active'));
-                 const activeItem = listElement.querySelector(`li[data-channel-index="${index}"]`);
-                 if (activeItem) {
-                     activeItem.classList.add('active');
-                     // No hacer scrollIntoView automáticamente en táctil, puede ser molesto
+            // CAMBIO: Adaptado para resaltar item-card
+            function highlightPlayingChannel(index, gridElement) {
+                 if (!gridElement) return;
+                 gridElement.querySelectorAll('.item-card.active').forEach(card => card.classList.remove('active'));
+                 if (index !== null) {
+                     const activeItem = gridElement.querySelector(`.item-card[data-channel-index="${index}"]`);
+                     if (activeItem) {
+                         activeItem.classList.add('active');
+                     }
                  }
              }
 
@@ -1015,7 +988,6 @@
                     if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
                     let data = await response.json();
                     if (!Array.isArray(data)) throw new Error("Formato de datos de series inválido.");
-                    // Filtrar las que NO son series (igual que antes)
                     seriesData = data.filter(item =>
                          item && item.tituloSerie &&
                          !item.tituloSerie.toLowerCase().includes('película') &&
@@ -1030,7 +1002,7 @@
                     console.error('Error cargando series:', error);
                     showError(`Error al cargar series: ${error.message}`, [{ text: "Reintentar", action: loadSeries }]);
                     seriesData = [];
-                    renderSeriesList([]); // Mostrar lista vacía
+                    renderSeriesList([]);
                 } finally {
                     hideLoading();
                 }
@@ -1038,25 +1010,31 @@
 
             function renderSeriesList(seriesArray) {
                  if (!seriesGridElement) return;
-                 seriesGridElement.innerHTML = ''; // Limpiar
+                 seriesGridElement.innerHTML = '';
                  if (!seriesArray || seriesArray.length === 0) {
                      seriesGridElement.innerHTML = `<p class="text-center" style="color: var(--text-secondary); grid-column: 1 / -1;">No hay series disponibles.</p>`;
                      return;
                  }
                  const fragment = document.createDocumentFragment();
                  seriesArray.forEach((serie, index) => {
-                     if (!serie || !serie.tituloSerie) return; // Saltar series inválidas
+                     if (!serie || !serie.tituloSerie) return;
 
                      const card = document.createElement('div');
-                     card.className = 'item-card';
+                     // Añadir clase específica para diferenciarla si es necesario
+                     card.className = 'item-card series-card';
                      card.dataset.seriesIndex = index;
+
+                     // Contenedor de imagen
+                     const imageContainer = document.createElement('div');
+                     imageContainer.className = 'card-image-container'; // Usar contenedor común
 
                      const img = document.createElement('img');
                      const placeholderText = encodeURIComponent((serie.tituloSerie || '?').charAt(0));
                      img.src = serie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
-                     img.alt = ''; // Decorativo
+                     img.alt = '';
                      img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${serie.tituloSerie}`; };
                      img.loading = 'lazy';
+                     imageContainer.appendChild(img); // Añadir imagen al contenedor
 
                      const textContent = document.createElement('div');
                      textContent.className = 'text-content';
@@ -1064,11 +1042,10 @@
                      title.textContent = serie.tituloSerie;
                      textContent.appendChild(title);
 
-                     card.appendChild(img);
+                     card.appendChild(imageContainer); // Añadir contenedor de imagen
                      card.appendChild(textContent);
 
                      card.addEventListener('click', () => {
-                         // CORREGIDO: Usar el ID de la vista del reproductor
                          navigateTo('playerView', { type: 'series', index: index });
                      });
 
@@ -1081,13 +1058,13 @@
             // --- Películas ---
             async function loadMovies() {
                 showLoading("Cargando películas...");
-                moviesGridElement.innerHTML = ''; // Limpiar grid
+                moviesGridElement.innerHTML = '';
                 try {
                     const response = await fetch(MOVIES_JSON_URL, { cache: "no-store", headers: { 'Accept': 'application/json' } });
                     if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
                     let data = await response.json();
                     if (!Array.isArray(data)) throw new Error("Formato de datos de películas inválido.");
-                    moviesData = data; // Asumiendo que todas son películas
+                    moviesData = data;
                     console.log(`Películas cargadas: ${moviesData.length}`);
                     renderMoviesList(moviesData);
                      if (moviesData.length === 0) {
@@ -1097,7 +1074,7 @@
                     console.error('Error cargando películas:', error);
                     showError(`Error al cargar películas: ${error.message}`, [{ text: "Reintentar", action: loadMovies }]);
                     moviesData = [];
-                    renderMoviesList([]); // Mostrar lista vacía
+                    renderMoviesList([]);
                 } finally {
                     hideLoading();
                 }
@@ -1105,25 +1082,31 @@
 
              function renderMoviesList(moviesArray) {
                  if (!moviesGridElement) return;
-                 moviesGridElement.innerHTML = ''; // Limpiar
+                 moviesGridElement.innerHTML = '';
                  if (!moviesArray || moviesArray.length === 0) {
                      moviesGridElement.innerHTML = `<p class="text-center" style="color: var(--text-secondary); grid-column: 1 / -1;">No hay películas disponibles.</p>`;
                      return;
                  }
                  const fragment = document.createDocumentFragment();
                  moviesArray.forEach((movie, index) => {
-                     if (!movie || !movie.titulo || !movie.urlDrive) return; // Saltar inválidos
+                     if (!movie || !movie.titulo || !movie.urlDrive) return;
 
                      const card = document.createElement('div');
-                     card.className = 'item-card';
+                      // Añadir clase específica para diferenciarla si es necesario
+                     card.className = 'item-card movie-card';
                      card.dataset.movieIndex = index;
+
+                      // Contenedor de imagen
+                     const imageContainer = document.createElement('div');
+                     imageContainer.className = 'card-image-container';
 
                      const img = document.createElement('img');
                      const placeholderText = encodeURIComponent((movie.titulo || '?').charAt(0));
                      img.src = movie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
-                     img.alt = ''; // Decorativo
+                     img.alt = '';
                      img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${movie.titulo}`; };
                      img.loading = 'lazy';
+                     imageContainer.appendChild(img);
 
                      const textContent = document.createElement('div');
                      textContent.className = 'text-content';
@@ -1131,11 +1114,10 @@
                      title.textContent = movie.titulo;
                      textContent.appendChild(title);
 
-                     card.appendChild(img);
+                     card.appendChild(imageContainer);
                      card.appendChild(textContent);
 
                      card.addEventListener('click', () => {
-                         // CORREGIDO: Usar el ID de la vista del reproductor
                          navigateTo('playerView', { type: 'movie', index: index });
                      });
 
@@ -1149,7 +1131,7 @@
 
             function setupPlayerView(data) {
                  console.log("Configurando vista de reproductor para:", data);
-                 stopPlayback(); // Detener cualquier reproducción anterior
+                 stopPlayback();
 
                  playerContentTitle.textContent = 'Cargando...';
                  playerContentDescription.textContent = '';
@@ -1168,8 +1150,9 @@
                          playerContentDescription.textContent = channel.description || '';
                          setupTvPlayerControls(channelIndex);
                          playHlsStream(channel.url, channelIndex);
-                         highlightPlayingChannel(channelIndex, tvChannelListElement);
-                         highlightPlayingChannel(channelIndex, favoritesChannelListElement);
+                         // CAMBIO: Resaltar en grids
+                         highlightPlayingChannel(channelIndex, tvChannelGridElement);
+                         highlightPlayingChannel(channelIndex, favoritesChannelGridElement);
                      } else {
                          showError("Error: Índice de canal de TV inválido.");
                          navigateTo(previousView || 'mainMenuView');
@@ -1182,7 +1165,6 @@
                          playerContentTitle.textContent = serie.tituloSerie || 'Serie Desconocida';
                          playerContentDescription.textContent = serie.descripcion || '';
                          setupSeriesPlayerControls(serie);
-                         // No reproducir nada hasta que se seleccione episodio
                          showMessageInPlayer("Selecciona temporada y episodio");
                      } else {
                          showError("Error: Índice de serie inválido.");
@@ -1195,7 +1177,6 @@
                          currentPlayingMovieIndex = movieIndex;
                          playerContentTitle.textContent = movie.titulo || 'Película Desconocida';
                          playerContentDescription.textContent = movie.descripcion || '';
-                         // No hay controles específicos para películas por ahora
                          playDriveStream(movie.urlDrive);
                      } else {
                          showError("Error: Índice de película inválido.");
@@ -1209,20 +1190,19 @@
              }
 
             function setupTvPlayerControls(channelIndex) {
-                 playerFavoriteButton.style.display = 'flex'; // Mostrar botón fav
-                 playerSeriesSelectors.style.display = 'none'; // Ocultar selectores serie
+                 playerFavoriteButton.style.display = 'flex';
+                 playerSeriesSelectors.style.display = 'none';
 
                  const isFav = tvFavorites.includes(channelIndex.toString());
                  playerFavoriteButton.classList.toggle('is-favorite', isFav);
                  playerFavoriteButton.setAttribute('aria-label', isFav ? 'Quitar de favoritos' : 'Añadir a favoritos');
-                 playerFavoriteButton.onclick = () => toggleTvFavorite(channelIndex); // Asignar evento
+                 playerFavoriteButton.onclick = () => toggleTvFavorite(channelIndex);
              }
 
             function setupSeriesPlayerControls(serie) {
-                 playerFavoriteButton.style.display = 'none'; // Ocultar botón fav
-                 playerSeriesSelectors.style.display = 'flex'; // Mostrar selectores
+                 playerFavoriteButton.style.display = 'none';
+                 playerSeriesSelectors.style.display = 'flex';
 
-                 // Limpiar selectores
                  seasonSelector.innerHTML = '<option value="">Temporada</option>';
                  episodeSelector.innerHTML = '<option value="">Episodio</option>';
                  episodeSelector.disabled = true;
@@ -1233,7 +1213,6 @@
                      return;
                  }
 
-                 // Llenar selector de temporadas
                  serie.temporadas.sort((a, b) => (a.numeroTemporada || 0) - (b.numeroTemporada || 0));
                  serie.temporadas.forEach(temp => {
                      if (typeof temp.numeroTemporada !== 'undefined') {
@@ -1245,16 +1224,14 @@
                  });
                  seasonSelector.disabled = false;
 
-                 // Evento cambio de temporada
                  seasonSelector.onchange = () => {
                      const selectedSeasonNum = seasonSelector.value;
-                     episodeSelector.innerHTML = '<option value="">Episodio</option>'; // Limpiar episodios
+                     episodeSelector.innerHTML = '<option value="">Episodio</option>';
                      episodeSelector.disabled = true;
-                     // Asegurarse que currentPlayingSeries existe
                      if (!currentPlayingSeries) currentPlayingSeries = {};
                      currentPlayingSeries.seasonNumber = selectedSeasonNum ? parseInt(selectedSeasonNum) : null;
-                     currentPlayingSeries.episodeIndex = null; // Resetear episodio
-                     stopPlayback(); // Detener si algo se estaba reproduciendo
+                     currentPlayingSeries.episodeIndex = null;
+                     stopPlayback();
                      showMessageInPlayer("Selecciona un episodio");
 
                      if (selectedSeasonNum) {
@@ -1263,7 +1240,7 @@
                              selectedSeason.episodios.forEach((ep, index) => {
                                  if (ep.tituloEpisodio && ep.urlDrive) {
                                      const option = document.createElement('option');
-                                     option.value = index; // Guardar índice del episodio
+                                     option.value = index;
                                      option.textContent = `${index + 1}. ${ep.tituloEpisodio}`;
                                      episodeSelector.appendChild(option);
                                  }
@@ -1275,11 +1252,9 @@
                      }
                  };
 
-                 // Evento cambio de episodio
                  episodeSelector.onchange = () => {
                      const selectedEpisodeIndex = episodeSelector.value;
                      const selectedSeasonNum = seasonSelector.value;
-                     // Asegurarse que currentPlayingSeries existe
                      if (!currentPlayingSeries) currentPlayingSeries = {};
                      currentPlayingSeries.episodeIndex = selectedEpisodeIndex ? parseInt(selectedEpisodeIndex) : null;
 
@@ -1288,7 +1263,6 @@
                          if (selectedSeason && selectedSeason.episodios[selectedEpisodeIndex]) {
                              const episode = selectedSeason.episodios[selectedEpisodeIndex];
                              playDriveStream(episode.urlDrive);
-                             // Actualizar título y desc para el episodio
                              playerContentTitle.textContent = `${serie.tituloSerie} - T${selectedSeasonNum} E${parseInt(selectedEpisodeIndex) + 1}`;
                              playerContentDescription.textContent = episode.tituloEpisodio || '';
                          } else {
@@ -1296,9 +1270,8 @@
                              stopPlayback();
                          }
                      } else {
-                         stopPlayback(); // Detener si se deselecciona un episodio
+                         stopPlayback();
                          showMessageInPlayer("Selecciona un episodio");
-                         // Restaurar título/desc de la serie
                          playerContentTitle.textContent = serie.tituloSerie || 'Serie Desconocida';
                          playerContentDescription.textContent = serie.descripcion || '';
                      }
@@ -1307,7 +1280,6 @@
 
             function playHlsStream(url, channelIndex) {
                  if (!Hls.isSupported()) {
-                     // Intentar reproducción nativa si es soportada (iOS)
                      if (hlsPlayerElement.canPlayType('application/vnd.apple.mpegurl')) {
                          console.log("Usando HLS nativo (iOS?)");
                          hlsPlayerElement.src = url;
@@ -1319,8 +1291,7 @@
                              showError(`Error al reproducir (nativo): ${e.message}`);
                              updateTvChannelStatus(channelIndex, 'offline');
                          });
-                         // Listener para estado online (puede ser menos fiable en nativo)
-                         hlsPlayerElement.removeEventListener('playing', handleHlsPlaying); // Limpiar anterior
+                         hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
                          hlsPlayerElement.addEventListener('playing', handleHlsPlaying, { once: true });
                      } else {
                          showError("HLS no es soportado por este navegador.");
@@ -1332,7 +1303,7 @@
                      if (hlsInstance) {
                          hlsInstance.destroy();
                      }
-                     hlsInstance = new Hls({ /* enableWorker: false // Probar si hay problemas */ });
+                     hlsInstance = new Hls({ });
                      hlsInstance.loadSource(url);
                      hlsInstance.attachMedia(hlsPlayerElement);
                      hlsPlayerElement.style.display = 'block';
@@ -1359,33 +1330,28 @@
                                  { text: "Ver Lista", action: () => navigateTo('tvListView') }
                              ]);
                              updateTvChannelStatus(channelIndex, 'offline');
-                             stopPlayback(); // Detener y mostrar mensaje
+                             stopPlayback();
                              showMessageInPlayer("Error al cargar canal");
                          }
                      });
 
-                     // Listener para estado online
-                     hlsPlayerElement.removeEventListener('playing', handleHlsPlaying); // Limpiar anterior
+                     hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
                      hlsPlayerElement.addEventListener('playing', handleHlsPlaying, { once: true });
                  }
-                 // Listener común para errores del elemento video
                  hlsPlayerElement.removeEventListener('error', handleVideoElementError);
                  hlsPlayerElement.addEventListener('error', handleVideoElementError);
              }
 
-            // Handler separado para el evento 'playing'
             function handleHlsPlaying() {
                  console.log("HLS playing event fired");
                  if (currentPlayingTvChannelIndex !== null) {
                      updateTvChannelStatus(currentPlayingTvChannelIndex, 'online');
                  }
              }
-            // Handler separado para errores del elemento <video>
             function handleVideoElementError(e) {
                  console.error("Error en elemento <video>:", e);
-                 const channelIndex = currentPlayingTvChannelIndex; // Capturar índice actual
+                 const channelIndex = currentPlayingTvChannelIndex;
                  showError("Error al cargar el video.", [
-                     // No ofrecer reintentar aquí, ya que es error del elemento
                      { text: "Ver Lista", action: () => navigateTo('tvListView') }
                  ]);
                  if (channelIndex !== null) {
@@ -1398,19 +1364,17 @@
 
             function playDriveStream(url) {
                  let cleanUrl = url || '';
-                 // Asegurar que la URL está en formato /preview
                  if (cleanUrl.includes('/file/d/')) {
                      const match = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                      if (match && match[1]) {
                          cleanUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
                      } else {
-                         cleanUrl = ''; // URL inválida
+                         cleanUrl = '';
                      }
                  } else if (cleanUrl.includes('/preview')) {
-                    // Ya está bien, asegurarse que no hay parámetros extra
                     cleanUrl = cleanUrl.substring(0, cleanUrl.indexOf('/preview') + '/preview'.length);
                  } else {
-                    cleanUrl = ''; // Formato no reconocido
+                    cleanUrl = '';
                  }
 
 
@@ -1425,12 +1389,10 @@
                  drivePlayerElement.style.display = 'block';
                  hlsPlayerElement.style.display = 'none';
                  hideMessageInPlayer();
-                 // No hay evento 'playing' fiable para iframes, asumimos que funciona si la URL es válida
              }
 
             function stopPlayback() {
                  console.log("Deteniendo reproducción");
-                 // Detener HLS
                  if (hlsInstance) {
                      hlsInstance.destroy();
                      hlsInstance = null;
@@ -1438,24 +1400,21 @@
                  if (hlsPlayerElement) {
                      hlsPlayerElement.pause();
                      hlsPlayerElement.removeAttribute('src');
-                     hlsPlayerElement.load(); // Forza la recarga/limpieza
+                     hlsPlayerElement.load();
                      hlsPlayerElement.style.display = 'none';
                      hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
                      hlsPlayerElement.removeEventListener('error', handleVideoElementError);
                  }
-                 // Detener Drive
                  if (drivePlayerElement) {
                      drivePlayerElement.src = 'about:blank';
                      drivePlayerElement.style.display = 'none';
                  }
-                 // Limpiar estado
                  currentPlayingTvChannelIndex = null;
                  currentPlayingSeries = null;
                  currentPlayingMovieIndex = null;
-                 // Limpiar resaltado en listas
-                 highlightPlayingChannel(null, tvChannelListElement);
-                 highlightPlayingChannel(null, favoritesChannelListElement);
-                 // No mostrar mensaje aquí, se hará al configurar la nueva vista o player
+                 // CAMBIO: Limpiar resaltado en grids
+                 highlightPlayingChannel(null, tvChannelGridElement);
+                 highlightPlayingChannel(null, favoritesChannelGridElement);
             }
 
             function showMessageInPlayer(message = "") {
@@ -1463,7 +1422,6 @@
                      playerMessageElement.textContent = message;
                      playerMessageElement.style.display = message ? 'block' : 'none';
                  }
-                 // Ocultar reproductores cuando hay mensaje
                  if(hlsPlayerElement) hlsPlayerElement.style.display = 'none';
                  if(drivePlayerElement) drivePlayerElement.style.display = 'none';
             }
@@ -1472,7 +1430,6 @@
                  if (playerMessageElement) {
                      playerMessageElement.style.display = 'none';
                  }
-                 // No mostrar reproductores aquí, se hace en playHlsStream/playDriveStream
             }
 
             // --- Favoritos TV ---
@@ -1482,27 +1439,25 @@
                  const favIndex = tvFavorites.indexOf(indexString);
 
                  if (favIndex > -1) {
-                     tvFavorites.splice(favIndex, 1); // Quitar
+                     tvFavorites.splice(favIndex, 1);
                      console.log(`Canal TV ${channelIndex} quitado de favoritos`);
                  } else {
-                     tvFavorites.push(indexString); // Añadir
+                     tvFavorites.push(indexString);
                      console.log(`Canal TV ${channelIndex} añadido a favoritos`);
                  }
                  localStorage.setItem('favoritesTvChannelsCar', JSON.stringify(tvFavorites));
 
-                 // Actualizar UI (botón en player y lista de favoritos si está visible)
                  updateFavoriteButtonUI(channelIndex);
-                 if (document.getElementById('favoritesListView')?.classList.contains('active')) { // CORREGIDO: Usar ID
+                 if (document.getElementById('favoritesListView')?.classList.contains('active')) {
                      renderFavoritesList();
                  }
                  // Opcional: Re-renderizar lista principal si se quiere orden por favoritos
-                 // if (document.getElementById('tvListView')?.classList.contains('active')) { // CORREGIDO: Usar ID
+                 // if (document.getElementById('tvListView')?.classList.contains('active')) {
                  //     filterAndRenderTvChannels();
                  // }
              }
 
             function updateFavoriteButtonUI(channelIndex) {
-                 // CORREGIDO: Usar ID de la vista
                  if (currentView === 'playerView' && currentPlayingTvChannelIndex === channelIndex) {
                      const isFav = tvFavorites.includes(channelIndex.toString());
                      playerFavoriteButton.classList.toggle('is-favorite', isFav);
@@ -1512,10 +1467,6 @@
 
             // --- Event Listeners ---
             backButton.addEventListener('click', () => {
-                // Lógica de volver atrás:
-                // Si estamos en el player -> ir a la vista anterior (lista)
-                // Si estamos en una lista -> ir al menú principal
-                 // CORREGIDO: Usar ID de la vista
                 if (currentView === 'playerView' && previousView) {
                     navigateTo(previousView);
                 } else if (currentView !== 'mainMenuView') {
@@ -1523,7 +1474,6 @@
                 }
             });
 
-            // Listeners para botones del menú principal
             document.querySelectorAll('#mainMenuView .menu-button').forEach(button => {
                 button.addEventListener('click', () => {
                     const targetViewId = button.dataset.targetView;
@@ -1533,18 +1483,14 @@
                 });
             });
 
-            // Listener para búsqueda en TV
             if (tvSearchButton && tvSearchInput) {
                  tvSearchButton.addEventListener('click', filterAndRenderTvChannels);
                  tvSearchInput.addEventListener('keyup', (e) => {
                      if (e.key === 'Enter') {
                          filterAndRenderTvChannels();
-                         tvSearchInput.blur(); // Ocultar teclado
-                     } else {
-                         // Podrías añadir un debounce aquí si quieres filtrar mientras se escribe
+                         tvSearchInput.blur();
                      }
                  });
-                 // Limpiar búsqueda si se borra el texto
                  tvSearchInput.addEventListener('input', () => {
                     if(tvSearchInput.value === '') {
                         filterAndRenderTvChannels();
@@ -1554,16 +1500,13 @@
                  console.warn("Elementos de búsqueda de TV no encontrados.");
              }
 
-            // Listener para cerrar overlay de error
             closeErrorCarButton.addEventListener('click', hideError);
 
 
             // --- Inicialización ---
             function initializeApp() {
                 console.log("Inicializando aplicación táctil...");
-                navigateTo('mainMenuView'); // Empezar en el menú principal
-                // Carga inicial de TV (se hace al navegar a la vista)
-                // Las demás listas se cargan bajo demanda
+                navigateTo('mainMenuView');
             }
 
             initializeApp();
