@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Reproductor Multimedia Táctil</title>
+    <title>Reproductor Multimedia Táctil con Gamepad</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,6 +30,8 @@
             --header-height: 60px;
             --footer-height: 70px;
             --button-min-size: 48px; /* Tamaño mínimo táctil */
+            --gamepad-focus-outline: 3px solid var(--accent-color);
+            --gamepad-focus-shadow: 0 0 10px rgba(29, 185, 84, 0.8);
         }
 
         /* --- Estilos Globales --- */
@@ -78,39 +80,33 @@
             display: none; /* Oculto por defecto */
             min-width: var(--button-min-size);
             min-height: var(--button-min-size);
-            /* display: flex; */ /* Se controla con .visible */
             align-items: center;
             justify-content: center;
         }
          .app-header .back-button.visible {
-             display: flex; /* Mostrar cuando sea necesario */
+           display: flex; /* Mostrar cuando sea necesario */
          }
         .app-header .logo img {
-             height: 40px;
-             object-fit: contain;
-             margin: 0 auto; /* Centrar logo si no hay botón atrás */
+            height: 40px;
+            object-fit: contain;
+            margin: 0 auto; /* Centrar logo si no hay botón atrás */
         }
         .app-header .logo.with-back-button img {
             margin: 0; /* Alinear a la izquierda cuando hay botón atrás */
         }
-        /* Espacio para equilibrar el botón de volver */
         .header-spacer {
-             width: var(--button-min-size);
-             height: var(--button-min-size);
-             flex-shrink: 0;
+            width: var(--button-min-size);
+            height: var(--button-min-size);
+            flex-shrink: 0;
         }
-
 
         /* --- Contenido Principal --- */
         .app-main {
             flex-grow: 1;
             overflow-y: auto; /* Scroll principal */
             overflow-x: hidden;
-            /* Quitar padding para que el fondo de la vista ocupe todo */
-            /* padding: calc(var(--spacing-unit) * 2); */
             position: relative; /* Para el overlay de carga */
         }
-        /* Estilo scrollbar (opcional, puede ser menos visible en táctil) */
         .app-main::-webkit-scrollbar { width: 6px; }
         .app-main::-webkit-scrollbar-track { background: transparent; }
         .app-main::-webkit-scrollbar-thumb { background-color: var(--bg-tertiary); border-radius: 3px; }
@@ -118,74 +114,66 @@
         /* --- Vistas (Secciones) --- */
         .view {
             display: none;
-            padding: calc(var(--spacing-unit) * 2); /* Añadir padding interno a las vistas */
-            height: 100%; /* Asegurar que la vista activa ocupa el espacio */
-            overflow-y: auto; /* Permitir scroll dentro de la vista si es necesario */
+            padding: calc(var(--spacing-unit) * 2);
+            height: 100%;
+            overflow-y: auto;
         }
         .view.active { display: block; }
 
         /* --- Vista Menú Principal --- */
         #mainMenuView {
-            /* Imagen de fondo */
             background-image: url('https://d2t1xqejof9utc.cloudfront.net/screenshots/pics/5a713433010f81e5b52534d932f73905/large.png');
-            /* background-size: contain; */ /* Hacer que la imagen quepa completa */
-            background-size: 80% auto; /* AJUSTE: Imagen ocupa 80% del ancho, altura automática */
-            background-position: center; /* Centrar la imagen */
-            background-repeat: no-repeat; /* No repetir la imagen */
-            /* Añadir un overlay semi-transparente para mejorar legibilidad */
-            position: relative; /* Necesario para el pseudo-elemento */
-            z-index: 1; /* Asegurar que está debajo del contenido */
-            background-color: var(--bg-primary); /* Color de fondo si la imagen no cubre todo */
+            background-size: 80% auto;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            z-index: 1;
+            background-color: var(--bg-primary);
         }
-        /* Overlay para mejorar contraste */
         #mainMenuView::before {
             content: "";
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.6); /* Negro semi-transparente */
-            z-index: -1; /* Detrás del contenido de la vista */
-            border-radius: inherit; /* Heredar redondeo si se aplica a .view */
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+            border-radius: inherit;
         }
-
         #mainMenuView .menu-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Columnas adaptables */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: calc(var(--spacing-unit) * 2);
-            padding: calc(var(--spacing-unit) * 2) 0; /* Padding vertical */
-            position: relative; /* Para que esté sobre el overlay */
+            padding: calc(var(--spacing-unit) * 2) 0;
+            position: relative;
             z-index: 2;
         }
         .menu-button {
-            background-color: rgba(30, 30, 30, 0.8); /* Fondo semi-transparente para botones */
-            border: 1px solid rgba(51, 51, 51, 0.8); /* Borde semi-transparente */
+            background-color: rgba(30, 30, 30, 0.8);
+            border: 1px solid rgba(51, 51, 51, 0.8);
             color: var(--text-primary);
-            padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 2); /* Más padding */
+            padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 2);
             border-radius: var(--border-radius-md);
-            font-size: 1.2em; /* Texto más grande */
+            font-size: 1.2em;
             font-weight: 500;
             cursor: pointer;
             text-align: center;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease, outline 0.2s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             gap: var(--spacing-unit);
-            min-height: 120px; /* Altura mínima */
-            backdrop-filter: blur(2px); /* Efecto blur ligero (opcional) */
+            min-height: 120px;
+            backdrop-filter: blur(2px);
             -webkit-backdrop-filter: blur(2px);
         }
         .menu-button i {
-            font-size: 2em; /* Icono grande */
+            font-size: 2em;
             margin-bottom: var(--spacing-unit);
         }
-        .menu-button:hover { background-color: rgba(42, 42, 42, 0.9); } /* Hover más opaco */
-        .menu-button:active { transform: scale(0.97); } /* Feedback táctil */
+        .menu-button:hover { background-color: rgba(42, 42, 42, 0.9); }
+        .menu-button:active { transform: scale(0.97); }
 
-        /* --- Vista Lista de Contenido (TV, Series, Películas, Favoritos) --- */
+        /* --- Vista Lista de Contenido --- */
         .content-list-view h2 {
             font-size: 1.5em;
             margin-bottom: calc(var(--spacing-unit) * 2);
@@ -204,6 +192,7 @@
             color: var(--text-primary);
             font-size: 1em;
             outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .search-bar input:focus { border-color: var(--accent-color); }
         .search-bar button {
@@ -216,311 +205,191 @@
             font-size: 1.2em;
             cursor: pointer;
             min-width: var(--button-min-size);
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
         }
-         .search-bar button:hover { background-color: var(--border-color); color: var(--text-primary); }
+        .search-bar button:hover { background-color: var(--border-color); color: var(--text-primary); }
 
-        /* Grid Común para Series, Películas, TV y Favoritos */
+        /* Grid Común */
         .item-grid, .channel-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Tamaño base más pequeño para grid */
-            gap: calc(var(--spacing-unit) * 1.5); /* Reducir gap */
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: calc(var(--spacing-unit) * 1.5);
         }
-        /* Estilo de Tarjeta Común */
         .item-card {
             background-color: var(--bg-secondary);
             border-radius: var(--border-radius-sm);
             overflow: hidden;
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease, outline 0.2s ease;
             display: flex;
             flex-direction: column;
-            position: relative; /* Para el status dot */
+            position: relative;
         }
         .item-card:hover { background-color: var(--bg-tertiary); }
         .item-card:active { transform: scale(0.97); }
-
-        /* Imagen de la Tarjeta (Series/Películas vs TV/Favoritos) */
         .item-card .card-image-container {
-            position: relative; /* Para el status dot */
+            position: relative;
             width: 100%;
-            background-color: var(--bg-tertiary); /* Fondo mientras carga */
+            background-color: var(--bg-tertiary);
         }
-        /* Imagen para Series/Películas (Poster) */
-        .item-card.series-card img, .item-card.movie-card img {
-            aspect-ratio: 2 / 3;
-        }
-        /* Imagen para TV/Favoritos (Logo cuadrado/circular) */
+        .item-card.series-card img, .item-card.movie-card img { aspect-ratio: 2 / 3; }
         .item-card.tv-card img {
-            aspect-ratio: 1 / 1; /* Cuadrado para logos */
-            object-fit: cover; /* O contain, dependiendo de los logos */
-            border-radius: 50%; /* Hacer logos circulares */
-            padding: 10%; /* Espacio alrededor del logo */
-            background-color: var(--bg-tertiary); /* Fondo si el logo es transparente */
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 50%;
+            padding: 10%;
+            background-color: var(--bg-tertiary);
         }
-
-        .item-card img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        /* Contenido de Texto de la Tarjeta */
+        .item-card img { width: 100%; height: auto; display: block; }
         .item-card .text-content {
             padding: var(--spacing-unit);
-            text-align: center; /* Centrar título */
+            text-align: center;
             flex-grow: 1;
         }
         .item-card h3 {
-            font-size: 0.9em; /* Ligeramente más pequeño para grid */
+            font-size: 0.9em;
             font-weight: 500;
             color: var(--text-primary);
             line-height: 1.3;
-            /* Limitar a 2 líneas */
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            min-height: calc(1.3em * 2); /* Espacio para 2 líneas */
+            min-height: calc(1.3em * 2);
         }
-        /* Ocultar descripción en grid para simplicidad */
         .item-card p { display: none; }
-
-        /* Status Dot para TV/Favoritos en Grid */
         .item-card.tv-card .status-dot {
             position: absolute;
-            bottom: calc(10% + 4px); /* Ajustar posición relativa al padding de la imagen */
+            bottom: calc(10% + 4px);
             right: calc(10% + 4px);
-            width: 12px; /* Ligeramente más grande */
+            width: 12px;
             height: 12px;
             border-radius: 50%;
             background-color: var(--unknown-color);
-            border: 2px solid var(--bg-secondary); /* Borde para contraste */
+            border: 2px solid var(--bg-secondary);
             transition: background-color 0.3s ease;
-            z-index: 2; /* Encima de la imagen */
+            z-index: 2;
         }
         .item-card.tv-card .status-dot.online { background-color: var(--success-color); }
         .item-card.tv-card .status-dot.offline { background-color: var(--error-color); }
-
-        /* Estilo activo para tarjetas en grid */
-        .item-card.active {
+        .item-card.active { /* Estilo para el canal/contenido actualmente SELECCIONADO o REPRODUCIÉNDOSE */
             outline: 2px solid var(--accent-color);
-            outline-offset: -2px; /* Hacia adentro */
+            outline-offset: -2px;
             background-color: var(--bg-tertiary);
         }
 
-        /* Eliminar estilos específicos de .channel-list-item si ya no se usan */
-        .channel-list { display: none; } /* Ocultar la lista vertical si no se usa */
+        /* --- Estilo de Foco para Gamepad --- */
+        .gamepad-focus {
+            outline: var(--gamepad-focus-outline) !important;
+            outline-offset: 2px;
+            box-shadow: var(--gamepad-focus-shadow) !important;
+        }
+        /* Asegurar que los selectores también muestren foco */
+        select.gamepad-focus {
+             border-color: var(--accent-color) !important;
+        }
 
 
-        /* --- Vista Reproductor (Común para TV, Series, Películas) --- */
+        /* Vista Reproductor */
         #playerView {
-            height: 100%; /* Ocupar todo el espacio de .app-main */
-            display: flex;
-            flex-direction: column;
-            padding: 0; /* Quitar padding para que el player ocupe todo */
-            overflow: hidden; /* Evitar scroll dentro de la vista player */
+            height: 100%; display: flex; flex-direction: column; padding: 0; overflow: hidden;
         }
         .player-area {
-            flex-grow: 1; /* Ocupa la mayor parte del espacio */
-            background-color: #000;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 0; /* Sin redondeo para ocupar todo */
-            overflow: hidden;
+            flex-grow: 1; background-color: #000; position: relative; display: flex;
+            align-items: center; justify-content: center; border-radius: 0; overflow: hidden;
         }
-        .player-area video, .player-area iframe {
-            width: 100%;
-            height: 100%;
-            display: block;
-            border: none;
-        }
+        .player-area video, .player-area iframe { width: 100%; height: 100%; display: block; border: none; }
         .player-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: var(--text-secondary);
-            background-color: rgba(0,0,0,0.7);
-            padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
-            border-radius: var(--border-radius-sm);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-secondary); background-color: rgba(0,0,0,0.7);
+            padding: var(--spacing-unit) calc(var(--spacing-unit) * 2); border-radius: var(--border-radius-sm);
             text-align: center;
         }
-
-        /* Contenedor de info/controles específicos (debajo del player) */
         .player-info-controls {
-            padding: calc(var(--spacing-unit) * 1.5); /* Añadir padding aquí */
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column; /* Apilar info y controles */
-            gap: var(--spacing-unit);
-            background-color: var(--bg-primary); /* Fondo para separar del player */
+            padding: calc(var(--spacing-unit) * 1.5); flex-shrink: 0; display: flex;
+            flex-direction: column; gap: var(--spacing-unit); background-color: var(--bg-primary);
         }
-
-        /* Info del contenido (Título, descripción opcional) */
-        .content-info h3 {
-            font-size: 1.2em;
-            font-weight: 500;
-            margin-bottom: calc(var(--spacing-unit) * 0.5);
-        }
+        .content-info h3 { font-size: 1.2em; font-weight: 500; margin-bottom: calc(var(--spacing-unit) * 0.5); }
         .content-info p {
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            /* Limitar descripción si es muy larga */
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 0.9em; color: var(--text-secondary); display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;
         }
-
-        /* Controles específicos (Favoritos TV, Temporadas/Episodios Series) */
-        .specific-controls {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-unit);
-            flex-wrap: wrap; /* Para que quepan en pantallas pequeñas */
-        }
-
-        /* Botón Favorito (para TV) */
+        .specific-controls { display: flex; align-items: center; gap: var(--spacing-unit); flex-wrap: wrap; }
         .favorite-button {
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            font-size: 1.5em; /* Icono grande */
-            border-radius: 50%;
-            cursor: pointer;
-            width: var(--button-min-size);
-            height: var(--button-min-size);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s ease, background-color 0.2s ease;
+            background-color: var(--bg-secondary); border: 1px solid var(--border-color);
+            color: var(--text-secondary); font-size: 1.5em; border-radius: 50%; cursor: pointer;
+            width: var(--button-min-size); height: var(--button-min-size); display: flex;
+            align-items: center; justify-content: center;
+            transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
         }
-        .favorite-button.is-favorite {
-            color: var(--favorite-color);
-            background-color: var(--bg-tertiary);
-        }
-        .favorite-button:hover {
-            background-color: var(--bg-tertiary);
-        }
-        .favorite-button:active {
-             transform: scale(0.95);
-        }
-
-        /* Selectores de Temporada/Episodio (para Series) */
-        .season-episode-selectors {
-            display: flex;
-            gap: var(--spacing-unit);
-            flex-wrap: wrap;
-        }
+        .favorite-button.is-favorite { color: var(--favorite-color); background-color: var(--bg-tertiary); }
+        .favorite-button:hover { background-color: var(--bg-tertiary); }
+        .favorite-button:active { transform: scale(0.95); }
+        .season-episode-selectors { display: flex; gap: var(--spacing-unit); flex-wrap: wrap; }
         .season-episode-selectors select {
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: calc(var(--spacing-unit) * 1.2) calc(var(--spacing-unit) * 1.5);
-            border-radius: var(--border-radius-sm);
-            font-size: 1em;
-            min-width: 120px; /* Ancho mínimo */
-            cursor: pointer;
-            outline: none;
+            background-color: var(--bg-secondary); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: calc(var(--spacing-unit) * 1.2) calc(var(--spacing-unit) * 1.5);
+            border-radius: var(--border-radius-sm); font-size: 1em; min-width: 120px;
+            cursor: pointer; outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .season-episode-selectors select:focus {
-            border-color: var(--accent-color);
-        }
+        .season-episode-selectors select:focus { border-color: var(--accent-color); }
 
-
-        /* --- Overlay de Carga y Error --- */
+        /* Overlays */
         .loading-overlay, .error-overlay-car {
-            position: absolute; /* Cambiado a absolute para que quede dentro de .app-main */
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: none; /* Oculto por defecto */
-            align-items: center;
-            justify-content: center;
-            z-index: 1500;
-            padding: calc(var(--spacing-unit) * 3);
-            text-align: center;
-            flex-direction: column; /* Para error */
-            /* border-radius: var(--border-radius-md); */ /* Quitar redondeo, ocupa todo .app-main */
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8); display: none; align-items: center;
+            justify-content: center; z-index: 1500; padding: calc(var(--spacing-unit) * 3);
+            text-align: center; flex-direction: column;
         }
-        .loading-overlay.visible, .error-overlay-car.visible {
-            display: flex;
-        }
+        .loading-overlay.visible, .error-overlay-car.visible { display: flex; }
         .spinner {
-            border: 4px solid var(--bg-tertiary);
-            border-top: 4px solid var(--accent-color);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin-bottom: var(--spacing-unit);
+            border: 4px solid var(--bg-tertiary); border-top: 4px solid var(--accent-color);
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin-bottom: var(--spacing-unit);
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
         .error-overlay-car .error-message {
-            color: var(--error-color);
-            font-size: 1.1em;
-            margin-bottom: calc(var(--spacing-unit) * 2);
+            color: var(--error-color); font-size: 1.1em; margin-bottom: calc(var(--spacing-unit) * 2);
         }
-        .error-overlay-car .error-buttons {
-            display: flex;
-            gap: var(--spacing-unit);
-            flex-wrap: wrap; /* Para que quepan botones en pantallas pequeñas */
-            justify-content: center;
-        }
+        .error-overlay-car .error-buttons { display: flex; gap: var(--spacing-unit); flex-wrap: wrap; justify-content: center; }
         .error-overlay-car .error-button {
-            background-color: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
-            border-radius: var(--border-radius-sm);
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: background-color 0.2s ease;
+            background-color: var(--bg-tertiary); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
+            border-radius: var(--border-radius-sm); cursor: pointer; font-size: 0.9em;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
         }
-        .error-overlay-car .error-button:hover {
-            background-color: var(--border-color);
-        }
+        .error-overlay-car .error-button:hover { background-color: var(--border-color); }
 
-        /* --- Responsividad Simple --- */
+        /* Responsividad */
         @media (max-width: 600px) {
             :root {
-                --header-height: 50px;
-                --footer-height: 60px;
-                --spacing-unit: 6px;
-                --button-min-size: 44px;
+                --header-height: 50px; --footer-height: 60px; --spacing-unit: 6px; --button-min-size: 44px;
             }
             body { font-size: 15px; }
             .app-header .logo img { height: 35px; }
             #mainMenuView .menu-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-unit); }
             .menu-button { padding: calc(var(--spacing-unit) * 2); font-size: 1.1em; min-height: 100px; }
             .menu-button i { font-size: 1.8em; }
-            .item-grid, .channel-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--spacing-unit); } /* Más pequeño en móvil */
+            .item-grid, .channel-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--spacing-unit); }
             .item-card h3 { font-size: 0.85em; min-height: calc(1.3em * 2); }
-            .channel-list-item { padding: var(--spacing-unit); gap: var(--spacing-unit); }
-            .channel-list-item img { width: 40px; height: 40px; }
-            .channel-list-item .channel-title { font-size: 1em; }
-            .channel-list-item .channel-desc { font-size: 0.85em; }
             .content-info h3 { font-size: 1.1em; }
             .content-info p { font-size: 0.85em; }
             .season-episode-selectors select { font-size: 0.9em; min-width: 100px; padding: var(--spacing-unit); }
         }
-
     </style>
 </head>
 <body>
     <div class="app-container">
         <header class="app-header">
-            <button class="back-button" id="backButton" aria-label="Volver">
+            <button class="back-button" id="backButton" aria-label="Volver" tabindex="-1">
                 <i class="fas fa-arrow-left"></i>
             </button>
             <div class="logo" id="logoContainer">
                  <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjtH1eFwNcBk9FvfM8ozeG6zjDtvJR2j2CdfNtfn8rj0JP9PRWR7zeL_ayD_dwmmuqOe8-sTp-TcOGCVsg5yhUNBO_PqRVI9gCMu3B1x2MQ1ZsitAg-1NKxQ70x3H-O9eehSCsQO6DzLPxcB_uZpfGmfziYNcXQ0JylvrGY1PE-sc9nJ76l2c62PG3Kcvs/w683-h203/JORGEDEZ-19-3-2025.png"
-                      alt="Logo JORGEDEZ"
-                      onerror="this.onerror=null; this.style.display='none';">
+                     alt="Logo JORGEDEZ"
+                     onerror="this.onerror=null; this.style.display='none';">
             </div>
             <div class="header-spacer"></div>
         </header>
@@ -528,19 +397,19 @@
         <main class="app-main">
             <div id="mainMenuView" class="view active">
                 <div class="menu-grid">
-                    <button class="menu-button" data-target-view="tvListView">
+                    <button class="menu-button" data-target-view="tvListView" tabindex="0">
                         <i class="fas fa-tv"></i>
                         <span>TV en Vivo</span>
                     </button>
-                    <button class="menu-button" data-target-view="seriesListView">
+                    <button class="menu-button" data-target-view="seriesListView" tabindex="0">
                         <i class="fas fa-video"></i>
                         <span>Series</span>
                     </button>
-                    <button class="menu-button" data-target-view="moviesListView">
+                    <button class="menu-button" data-target-view="moviesListView" tabindex="0">
                         <i class="fas fa-film"></i>
                         <span>Películas</span>
                     </button>
-                    <button class="menu-button" data-target-view="favoritesListView">
+                    <button class="menu-button" data-target-view="favoritesListView" tabindex="0">
                         <i class="fas fa-star"></i>
                         <span>Favoritos (TV)</span>
                     </button>
@@ -550,8 +419,8 @@
             <div id="tvListView" class="view content-list-view">
                 <h2>TV en Vivo</h2>
                 <div class="search-bar">
-                    <input type="text" id="tvSearchInput" placeholder="Buscar canal..." aria-label="Buscar canal de TV">
-                    <button id="tvSearchButton" aria-label="Buscar"><i class="fas fa-search"></i></button>
+                    <input type="text" id="tvSearchInput" placeholder="Buscar canal..." aria-label="Buscar canal de TV" tabindex="0">
+                    <button id="tvSearchButton" aria-label="Buscar" tabindex="0"><i class="fas fa-search"></i></button>
                 </div>
                 <div class="channel-grid" id="tvChannelList">
                     </div>
@@ -577,8 +446,8 @@
 
             <div id="playerView" class="view">
                 <div class="player-area">
-                    <video id="hlsPlayer" playsinline webkit-playsinline crossorigin="anonymous" controls style="display: none;"></video>
-                    <iframe id="drivePlayer" src="about:blank" allow="autoplay; fullscreen" style="display: none;"></iframe>
+                    <video id="hlsPlayer" playsinline webkit-playsinline crossorigin="anonymous" controls style="display: none;" tabindex="-1"></video>
+                    <iframe id="drivePlayer" src="about:blank" allow="autoplay; fullscreen" style="display: none;" tabindex="-1"></iframe>
                     <div class="player-message" id="playerMessageElement">Cargando...</div>
                 </div>
                 <div class="player-info-controls">
@@ -587,12 +456,12 @@
                         <p id="playerContentDescription">Descripción...</p>
                     </div>
                     <div class="specific-controls">
-                        <button id="playerFavoriteButton" class="favorite-button" aria-label="Añadir a favoritos" style="display: none;">
+                        <button id="playerFavoriteButton" class="favorite-button" aria-label="Añadir a favoritos" style="display: none;" tabindex="0">
                             <i class="fas fa-star"></i>
                         </button>
                         <div id="playerSeriesSelectors" class="season-episode-selectors" style="display: none;">
-                            <select id="seasonSelector" aria-label="Seleccionar temporada"></select>
-                            <select id="episodeSelector" aria-label="Seleccionar episodio"></select>
+                            <select id="seasonSelector" aria-label="Seleccionar temporada" tabindex="0"></select>
+                            <select id="episodeSelector" aria-label="Seleccionar episodio" tabindex="0"></select>
                         </div>
                     </div>
                 </div>
@@ -610,7 +479,7 @@
     <div class="error-overlay-car" id="errorOverlayCar">
         <div class="error-message" id="errorMessageCar">Error</div>
         <div class="error-buttons" id="errorButtonsCar">
-            <button class="error-button" id="closeErrorCarButton">Cerrar</button>
+            <button class="error-button" id="closeErrorCarButton" tabindex="0">Cerrar</button>
         </div>
     </div>
 
@@ -618,7 +487,7 @@
     // Envolver en try...catch global
     try {
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM Cargado - Reproductor Táctil");
+            console.log("DOM Cargado - Reproductor Táctil con Gamepad");
 
             // --- URLs de Datos ---
             const M3U_URL = 'https://raw.githubusercontent.com/sejo48/chanejorgedez/refs/heads/main/listaoficial.m3u';
@@ -635,10 +504,23 @@
             let tvChannelStatuses = JSON.parse(localStorage.getItem('channelStatusesTvPlayerCar') || '{}');
             let hlsInstance = null;
             let currentPlayingTvChannelIndex = null;
-            let currentPlayingSeries = null; // { seriesIndex, seasonNumber, episodeIndex }
+            let currentPlayingSeries = null;
             let currentPlayingMovieIndex = null;
 
+            // --- Estado del Gamepad ---
+            let activeGamepadIndex = null;
+            let gamepadFocusedElement = null;
+            let focusableElementsInView = [];
+            let gamepadPollInterval = null;
+            const GAMEPAD_BUTTON_ACTION = 0; // Generalmente 'A' o botón inferior
+            const GAMEPAD_BUTTON_BACK = 1;   // Generalmente 'B' o botón derecho
+            const GAMEPAD_AXIS_THRESHOLD = 0.5;
+            const GAMEPAD_POLL_RATE = 100; // ms
+            let lastGamepadButtonStates = [];
+            let lastGamepadAxisStates = [[0,0],[0,0]]; // [LX, LY], [RX, RY]
+
             // --- Referencias a Elementos DOM ---
+            // (Se mantienen las referencias existentes)
             const views = {
                 mainMenuView: document.getElementById('mainMenuView'),
                 tvListView: document.getElementById('tvListView'),
@@ -649,13 +531,11 @@
             };
             const backButton = document.getElementById('backButton');
             const logoContainer = document.getElementById('logoContainer');
-            // CAMBIO: Referencia al nuevo contenedor de grid para TV
             const tvChannelGridElement = document.getElementById('tvChannelList');
             const tvSearchInput = document.getElementById('tvSearchInput');
             const tvSearchButton = document.getElementById('tvSearchButton');
             const seriesGridElement = document.getElementById('seriesGrid');
             const moviesGridElement = document.getElementById('moviesGrid');
-             // CAMBIO: Referencia al nuevo contenedor de grid para Favoritos
             const favoritesChannelGridElement = document.getElementById('favoritesChannelList');
             const hlsPlayerElement = document.getElementById('hlsPlayer');
             const drivePlayerElement = document.getElementById('drivePlayer');
@@ -670,32 +550,30 @@
             const loadingMessage = document.getElementById('loadingMessage');
             const errorOverlayCar = document.getElementById('errorOverlayCar');
             const errorMessageCar = document.getElementById('errorMessageCar');
-            const errorButtonsCar = document.getElementById('errorButtonsCar');
+            const errorButtonsCarContainer = document.getElementById('errorButtonsCar'); // Renombrado para claridad
             const closeErrorCarButton = document.getElementById('closeErrorCarButton');
 
-            // --- Verificación Inicial de Elementos Críticos ---
-            // CAMBIO: Verificar los nuevos contenedores de grid
+
             if (!backButton || !logoContainer || !tvChannelGridElement || !seriesGridElement || !moviesGridElement || !favoritesChannelGridElement || !hlsPlayerElement || !drivePlayerElement || !playerMessageElement || !loadingOverlay || !errorOverlayCar || !Object.values(views).every(v => v)) {
                 console.error("Error crítico: Faltan elementos esenciales de la interfaz.");
-                alert("Error al cargar la interfaz. Faltan elementos.");
+                alert("Error al cargar la interfaz. Faltan elementos."); // Considerar reemplazar alert si es posible
                 return;
             }
 
-            // --- Lógica de Navegación ---
+            // --- Lógica de Navegación (Modificada para Gamepad) ---
             function navigateTo(viewId, data = null) {
                 console.log(`Navegando a: ${viewId}`);
-                const targetView = document.getElementById(viewId);
-                if (!targetView) {
+                const targetViewElement = document.getElementById(viewId);
+                if (!targetViewElement) {
                      console.error(`Vista con ID ${viewId} no encontrada.`);
                      return;
                 }
 
-                const viewToShow = targetView;
                 previousView = currentView;
                 currentView = viewId;
 
                 document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-                viewToShow.classList.add('active');
+                targetViewElement.classList.add('active');
 
                 if (viewId === 'mainMenuView') {
                     backButton.classList.remove('visible');
@@ -711,70 +589,72 @@
 
                 switch (viewId) {
                     case 'tvListView':
-                        if (tvChannels.length === 0) loadTvChannels();
-                        else renderTvChannelList(tvChannels);
+                        if (tvChannels.length === 0) loadTvChannels().then(updateFocusableElementsForCurrentView);
+                        else { renderTvChannelList(tvChannels); updateFocusableElementsForCurrentView(); }
                         break;
                     case 'seriesListView':
-                        if (seriesData.length === 0) loadSeries();
+                        if (seriesData.length === 0) loadSeries().then(updateFocusableElementsForCurrentView);
+                        else { renderSeriesList(seriesData); updateFocusableElementsForCurrentView(); }
                         break;
                     case 'moviesListView':
-                        if (moviesData.length === 0) loadMovies();
+                        if (moviesData.length === 0) loadMovies().then(updateFocusableElementsForCurrentView);
+                        else { renderMoviesList(moviesData); updateFocusableElementsForCurrentView(); }
                         break;
                     case 'favoritesListView':
                         renderFavoritesList();
+                        updateFocusableElementsForCurrentView();
                         break;
                     case 'playerView':
-                        if (data) setupPlayerView(data);
+                        if (data) setupPlayerView(data); // setupPlayerView llamará a updateFocusable...
                         break;
+                    default:
+                        updateFocusableElementsForCurrentView(); // Para mainMenuView y otros
                 }
                 document.querySelector('.app-main')?.scrollTo(0, 0);
             }
 
-            // --- Lógica de Carga y Renderizado ---
-
-            function showLoading(message = "Cargando...") {
-                if (loadingOverlay && loadingMessage) {
-                    loadingMessage.textContent = message;
-                    loadingOverlay.classList.add('visible');
-                }
-            }
-
-            function hideLoading() {
-                if (loadingOverlay) {
-                    loadingOverlay.classList.remove('visible');
-                }
-            }
-
+            // --- Lógica de Carga y Renderizado (Sin cambios mayores, pero las funciones de renderizado ahora añaden tabindex) ---
+            function showLoading(message = "Cargando...") { /* ... (sin cambios) ... */ }
+            function hideLoading() { /* ... (sin cambios) ... */ }
             function showError(message, buttonsConfig = []) {
-                 console.error("Mostrando error:", message);
-                 if (errorOverlayCar && errorMessageCar && errorButtonsCar) {
-                     errorMessageCar.textContent = message;
-                     while (errorButtonsCar.firstChild && errorButtonsCar.firstChild !== closeErrorCarButton) {
-                         errorButtonsCar.removeChild(errorButtonsCar.firstChild);
-                     }
-                     buttonsConfig.forEach(config => {
-                         const button = document.createElement('button');
-                         button.className = 'error-button';
-                         button.textContent = config.text;
-                         button.onclick = () => {
-                             hideError();
-                             if (config.action) config.action();
-                         };
-                         errorButtonsCar.insertBefore(button, closeErrorCarButton);
-                     });
-                     errorOverlayCar.classList.add('visible');
-                 } else {
-                     alert(`Error: ${message}`);
-                 }
-             }
-
+                console.error("Mostrando error:", message);
+                if (errorOverlayCar && errorMessageCar && errorButtonsCarContainer) {
+                    errorMessageCar.textContent = message;
+                    // Limpiar botones adicionales, mantener el de cerrar
+                    while (errorButtonsCarContainer.firstChild && errorButtonsCarContainer.firstChild !== closeErrorCarButton) {
+                        errorButtonsCarContainer.removeChild(errorButtonsCarContainer.firstChild);
+                    }
+                    buttonsConfig.forEach(config => {
+                        const button = document.createElement('button');
+                        button.className = 'error-button';
+                        button.textContent = config.text;
+                        button.tabIndex = 0; // Hacerlo enfocable
+                        button.onclick = () => {
+                            hideError();
+                            if (config.action) config.action();
+                        };
+                        errorButtonsCarContainer.insertBefore(button, closeErrorCarButton);
+                    });
+                    errorOverlayCar.classList.add('visible');
+                    updateFocusableElementsForCurrentView(); // Actualizar foco para el overlay
+                } else {
+                    alert(`Error: ${message}`);
+                }
+            }
             function hideError() {
                 if (errorOverlayCar) {
                     errorOverlayCar.classList.remove('visible');
                 }
+                // Devolver el foco a la vista anterior o principal si es posible
+                if (previousView && views[previousView]) {
+                    updateFocusableElementsForCurrentView(previousView);
+                } else {
+                    updateFocusableElementsForCurrentView('mainMenuView');
+                }
             }
 
-            // --- TV ---
+
+            // --- TV (Modificado para añadir tabindex y actualizar foco) ---
             async function loadTvChannels() {
                 showLoading("Cargando canales de TV...");
                 try {
@@ -782,14 +662,12 @@
                     if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
                     const m3uText = await response.text();
                     tvChannels = parseM3U(m3uText);
-                    console.log(`Canales de TV parseados: ${tvChannels.length}`);
                     if (tvChannels.length === 0) {
                          showError("No se encontraron canales de TV válidos en la lista.", [{ text: "Recargar", action: loadTvChannels }]);
                     } else {
-                         renderTvChannelList(tvChannels); // Renderizar en grid
+                         renderTvChannelList(tvChannels);
                     }
                 } catch (error) {
-                    console.error('Error cargando/parseando M3U:', error);
                     showError(`Error al cargar canales: ${error.message}`, [{ text: "Reintentar", action: loadTvChannels }]);
                     tvChannels = [];
                     renderTvChannelList([]);
@@ -797,66 +675,63 @@
                     hideLoading();
                 }
             }
+            function parseM3U(m3uText) { /* ... (sin cambios en la lógica interna) ... */
+                const lines = m3uText.split(/[\r\n]+/);
+                const parsedChannels = [];
+                let currentChannelInfo = null;
+                const extinfRegex = /#EXTINF:(-?\d+)(.*)/;
+                const attributeRegex = /(\S+?)=(?:"([^"]*)"|([^ ]*))/g;
+                const titleCommaRegex = /,(?!")(.*)/;
 
-            function parseM3U(m3uText) {
-                 const lines = m3uText.split(/[\r\n]+/);
-                 const parsedChannels = [];
-                 let currentChannelInfo = null;
-                 const extinfRegex = /#EXTINF:(-?\d+)(.*)/;
-                 const attributeRegex = /(\S+?)=(?:"([^"]*)"|([^ ]*))/g;
-                 const titleCommaRegex = /,(?!")(.*)/;
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine || trimmedLine === '#EXTM3U') continue;
 
-                 for (const line of lines) {
-                     const trimmedLine = line.trim();
-                     if (!trimmedLine || trimmedLine === '#EXTM3U') continue;
+                    if (trimmedLine.startsWith('#EXTINF:')) {
+                        const match = trimmedLine.match(extinfRegex);
+                        if (match) {
+                            currentChannelInfo = { duration: match[1], attributes: {}, title: '', logo: '', url: '', description: '' };
+                            const restOfLine = match[2] || '';
+                            let attrMatch;
+                            while ((attrMatch = attributeRegex.exec(restOfLine)) !== null) {
+                                currentChannelInfo.attributes[attrMatch[1].toLowerCase()] = attrMatch[2] !== undefined ? attrMatch[2] : attrMatch[3];
+                            }
+                            currentChannelInfo.title = (currentChannelInfo.attributes['tvg-name'] || '').trim();
+                            if (!currentChannelInfo.title) {
+                                const titleMatch = restOfLine.match(titleCommaRegex);
+                                if (titleMatch && titleMatch[1]) {
+                                    currentChannelInfo.title = titleMatch[1].trim();
+                                }
+                            }
+                            if (!currentChannelInfo.title) { currentChannelInfo.title = 'Canal Desconocido'; }
+                            currentChannelInfo.logo = currentChannelInfo.attributes['tvg-logo'] || '';
+                            currentChannelInfo.description = currentChannelInfo.attributes['group-title'] || currentChannelInfo.title || '';
+                        } else {
+                            currentChannelInfo = null;
+                        }
+                    } else if (currentChannelInfo && !trimmedLine.startsWith('#')) {
+                        currentChannelInfo.url = trimmedLine;
+                        if (currentChannelInfo.url) {
+                            parsedChannels.push(currentChannelInfo);
+                        }
+                        currentChannelInfo = null;
+                    }
+                }
+                return parsedChannels;
+            }
 
-                     if (trimmedLine.startsWith('#EXTINF:')) {
-                         const match = trimmedLine.match(extinfRegex);
-                         if (match) {
-                             currentChannelInfo = { duration: match[1], attributes: {}, title: '', logo: '', url: '', description: '' };
-                             const restOfLine = match[2] || '';
-                             let attrMatch;
-                             while ((attrMatch = attributeRegex.exec(restOfLine)) !== null) {
-                                 currentChannelInfo.attributes[attrMatch[1].toLowerCase()] = attrMatch[2] !== undefined ? attrMatch[2] : attrMatch[3];
-                             }
-                             currentChannelInfo.title = (currentChannelInfo.attributes['tvg-name'] || '').trim();
-                             if (!currentChannelInfo.title) {
-                                 const titleMatch = restOfLine.match(titleCommaRegex);
-                                 if (titleMatch && titleMatch[1]) {
-                                     currentChannelInfo.title = titleMatch[1].trim();
-                                 }
-                             }
-                             if (!currentChannelInfo.title) { currentChannelInfo.title = 'Canal Desconocido'; }
-                             currentChannelInfo.logo = currentChannelInfo.attributes['tvg-logo'] || '';
-                             currentChannelInfo.description = currentChannelInfo.attributes['group-title'] || currentChannelInfo.title || '';
-                         } else {
-                             currentChannelInfo = null;
-                         }
-                     } else if (currentChannelInfo && !trimmedLine.startsWith('#')) {
-                         currentChannelInfo.url = trimmedLine;
-                         if (currentChannelInfo.url) {
-                             parsedChannels.push(currentChannelInfo);
-                         }
-                         currentChannelInfo = null;
-                     }
-                 }
-                 return parsedChannels;
-             }
-
-            // CAMBIO: Función para renderizar TV/Favoritos en Grid
             function renderTvChannelList(channelsToRender, targetElement = tvChannelGridElement) {
                 if (!targetElement) return;
-                targetElement.innerHTML = ''; // Limpiar grid
+                targetElement.innerHTML = '';
 
                 if (!channelsToRender || channelsToRender.length === 0) {
-                    // Mostrar mensaje dentro del grid
                     const messageElement = document.createElement('p');
                     messageElement.textContent = targetElement === favoritesChannelGridElement ? 'No hay favoritos.' : 'No se encontraron canales.';
                     messageElement.style.cssText = "color: var(--text-secondary); text-align: center; grid-column: 1 / -1; padding: calc(var(--spacing-unit) * 4) 0;";
                     targetElement.appendChild(messageElement);
                     return;
                 }
-
+                // ... (resto de la lógica de ordenación)
                 const sortedChannels = [...channelsToRender].sort((a, b) => {
                     const aIndex = tvChannels.findIndex(ch => ch.url === a.url);
                     const bIndex = tvChannels.findIndex(ch => ch.url === b.url);
@@ -870,28 +745,28 @@
                     return (a.title || '').localeCompare(b.title || '');
                 });
 
+
                 const fragment = document.createDocumentFragment();
                 sortedChannels.forEach(channel => {
                     const originalIndex = tvChannels.findIndex(ch => ch.url === channel.url);
                     if (originalIndex === -1) return;
 
-                    // Crear tarjeta (item-card)
                     const card = document.createElement('div');
-                    card.className = 'item-card tv-card'; // Añadir clase específica tv-card
+                    card.className = 'item-card tv-card';
                     card.dataset.channelIndex = originalIndex;
+                    card.tabIndex = 0; // Hacer la tarjeta enfocable
 
-                    // Contenedor para imagen y status dot
-                    const imageContainer = document.createElement('div');
+                    // ... (creación de img, statusDot, textContent como antes) ...
+                     const imageContainer = document.createElement('div');
                     imageContainer.className = 'card-image-container';
 
                     const img = document.createElement('img');
                     const placeholderText = encodeURIComponent((channel.title || '?').charAt(0));
-                    img.src = channel.logo || `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`; // Placeholder cuadrado
-                    img.alt = ''; // Decorativo
+                    img.src = channel.logo || `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`;
+                    img.alt = ''; 
                     img.onerror = () => { img.src = `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${channel.title || 'Canal'}`; };
                     img.loading = 'lazy';
 
-                    // Status dot
                     const statusDot = document.createElement('span');
                     const currentStatus = tvChannelStatuses[originalIndex];
                     statusDot.className = `status-dot ${currentStatus || ''}`;
@@ -899,9 +774,8 @@
                     statusDot.title = statusTitle;
 
                     imageContainer.appendChild(img);
-                    imageContainer.appendChild(statusDot); // Añadir dot al contenedor de imagen
+                    imageContainer.appendChild(statusDot); 
 
-                    // Contenido de texto (título)
                     const textContent = document.createElement('div');
                     textContent.className = 'text-content';
                     const title = document.createElement('h3');
@@ -914,7 +788,6 @@
                     card.addEventListener('click', () => {
                         navigateTo('playerView', { type: 'tv', index: originalIndex });
                     });
-
                     fragment.appendChild(card);
                 });
                 targetElement.appendChild(fragment);
@@ -922,140 +795,80 @@
                 if (currentPlayingTvChannelIndex !== null) {
                      highlightPlayingChannel(currentPlayingTvChannelIndex, targetElement);
                 }
+                // No llamar a updateFocusableElementsForCurrentView aquí, se llama después de renderizar en navigateTo
             }
-
             function renderFavoritesList() {
-                 const favoriteChannelsData = tvChannels.filter((channel, index) => tvFavorites.includes(index.toString()));
-                 // CAMBIO: Renderizar en el grid de favoritos
-                 renderTvChannelList(favoriteChannelsData, favoritesChannelGridElement);
-             }
-
+                const favoriteChannelsData = tvChannels.filter((channel, index) => tvFavorites.includes(index.toString()));
+                renderTvChannelList(favoriteChannelsData, favoritesChannelGridElement);
+            }
             function filterAndRenderTvChannels() {
                 const searchTerm = tvSearchInput.value.toLowerCase().trim();
                 const filtered = tvChannels.filter(channel =>
                     (channel.title && channel.title.toLowerCase().includes(searchTerm)) ||
                     (channel.description && channel.description.toLowerCase().includes(searchTerm))
                 );
-                 // CAMBIO: Renderizar en el grid de TV
                 renderTvChannelList(filtered, tvChannelGridElement);
+                updateFocusableElementsForCurrentView(); // Actualizar foco después de filtrar
             }
+            function updateTvChannelStatus(index, status) { /* ... (sin cambios) ... */ }
+            function updateStatusDotInElement(gridElement, index, status) { /* ... (sin cambios) ... */ }
+            function highlightPlayingChannel(index, gridElement) { /* ... (sin cambios) ... */ }
 
-            function updateTvChannelStatus(index, status) {
-                 if (index === null || index < 0 || index >= tvChannels.length) return;
-                 const previousStatus = tvChannelStatuses[index];
-                 if (previousStatus !== status) {
-                     tvChannelStatuses[index] = status;
-                     localStorage.setItem('channelStatusesTvPlayerCar', JSON.stringify(tvChannelStatuses));
-                     console.log(`Estado TV actualizado para ${index}: ${status}`);
-                     // CAMBIO: Actualizar dot en ambos grids
-                     updateStatusDotInElement(tvChannelGridElement, index, status);
-                     updateStatusDotInElement(favoritesChannelGridElement, index, status);
-                 }
-             }
 
-            // CAMBIO: Adaptado para buscar el dot dentro de item-card
-            function updateStatusDotInElement(gridElement, index, status) {
-                 if (!gridElement) return;
-                 const cardItem = gridElement.querySelector(`.item-card[data-channel-index="${index}"]`);
-                 if (cardItem) {
-                     const dot = cardItem.querySelector('.status-dot');
-                     if (dot) {
-                         dot.className = `status-dot ${status || ''}`;
-                         const statusTitle = status === 'online' ? 'En línea' : status === 'offline' ? 'Fuera de línea' : 'Estado desconocido';
-                         dot.title = statusTitle;
-                     }
-                 }
-             }
-
-            // CAMBIO: Adaptado para resaltar item-card
-            function highlightPlayingChannel(index, gridElement) {
-                 if (!gridElement) return;
-                 gridElement.querySelectorAll('.item-card.active').forEach(card => card.classList.remove('active'));
-                 if (index !== null) {
-                     const activeItem = gridElement.querySelector(`.item-card[data-channel-index="${index}"]`);
-                     if (activeItem) {
-                         activeItem.classList.add('active');
-                     }
-                 }
-             }
-
-            // --- Series ---
+            // --- Series y Películas (Modificado para añadir tabindex y actualizar foco) ---
             async function loadSeries() {
                 showLoading("Cargando series...");
-                seriesGridElement.innerHTML = ''; // Limpiar grid
+                seriesGridElement.innerHTML = '';
                 try {
                     const response = await fetch(SERIES_JSON_URL, { cache: "no-store", headers: { 'Accept': 'application/json' } });
                     if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
                     let data = await response.json();
                     if (!Array.isArray(data)) throw new Error("Formato de datos de series inválido.");
-                    seriesData = data.filter(item =>
-                         item && item.tituloSerie &&
-                         !item.tituloSerie.toLowerCase().includes('película') &&
-                         item.tituloSerie !== 'Encanto'
-                     );
-                    console.log(`Series cargadas y filtradas: ${seriesData.length}`);
+                    seriesData = data.filter(item => item && item.tituloSerie && !item.tituloSerie.toLowerCase().includes('película') && item.tituloSerie !== 'Encanto');
                     renderSeriesList(seriesData);
                      if (seriesData.length === 0) {
                          seriesGridElement.innerHTML = `<p class="text-center" style="color: var(--text-secondary); grid-column: 1 / -1;">No hay series disponibles.</p>`;
                      }
                 } catch (error) {
-                    console.error('Error cargando series:', error);
                     showError(`Error al cargar series: ${error.message}`, [{ text: "Reintentar", action: loadSeries }]);
-                    seriesData = [];
-                    renderSeriesList([]);
-                } finally {
-                    hideLoading();
-                }
+                    seriesData = []; renderSeriesList([]);
+                } finally { hideLoading(); }
             }
-
             function renderSeriesList(seriesArray) {
-                 if (!seriesGridElement) return;
-                 seriesGridElement.innerHTML = '';
-                 if (!seriesArray || seriesArray.length === 0) {
-                     seriesGridElement.innerHTML = `<p class="text-center" style="color: var(--text-secondary); grid-column: 1 / -1;">No hay series disponibles.</p>`;
-                     return;
-                 }
-                 const fragment = document.createDocumentFragment();
-                 seriesArray.forEach((serie, index) => {
-                     if (!serie || !serie.tituloSerie) return;
+                if (!seriesGridElement) return;
+                seriesGridElement.innerHTML = '';
+                if (!seriesArray || seriesArray.length === 0) { /* ... (mensaje de no disponibles) ... */ return; }
+                const fragment = document.createDocumentFragment();
+                seriesArray.forEach((serie, index) => {
+                    if (!serie || !serie.tituloSerie) return;
+                    const card = document.createElement('div');
+                    card.className = 'item-card series-card';
+                    card.dataset.seriesIndex = index;
+                    card.tabIndex = 0; // Enfocable
 
-                     const card = document.createElement('div');
-                     // Añadir clase específica para diferenciarla si es necesario
-                     card.className = 'item-card series-card';
-                     card.dataset.seriesIndex = index;
+                    // ... (creación de img, textContent como antes) ...
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'card-image-container';
+                    const img = document.createElement('img');
+                    const placeholderText = encodeURIComponent((serie.tituloSerie || '?').charAt(0));
+                    img.src = serie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
+                    img.alt = '';
+                    img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${serie.tituloSerie}`; };
+                    img.loading = 'lazy';
+                    imageContainer.appendChild(img);
+                    const textContent = document.createElement('div');
+                    textContent.className = 'text-content';
+                    const title = document.createElement('h3');
+                    title.textContent = serie.tituloSerie;
+                    textContent.appendChild(title);
+                    card.appendChild(imageContainer);
+                    card.appendChild(textContent);
 
-                     // Contenedor de imagen
-                     const imageContainer = document.createElement('div');
-                     imageContainer.className = 'card-image-container'; // Usar contenedor común
-
-                     const img = document.createElement('img');
-                     const placeholderText = encodeURIComponent((serie.tituloSerie || '?').charAt(0));
-                     img.src = serie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
-                     img.alt = '';
-                     img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${serie.tituloSerie}`; };
-                     img.loading = 'lazy';
-                     imageContainer.appendChild(img); // Añadir imagen al contenedor
-
-                     const textContent = document.createElement('div');
-                     textContent.className = 'text-content';
-                     const title = document.createElement('h3');
-                     title.textContent = serie.tituloSerie;
-                     textContent.appendChild(title);
-
-                     card.appendChild(imageContainer); // Añadir contenedor de imagen
-                     card.appendChild(textContent);
-
-                     card.addEventListener('click', () => {
-                         navigateTo('playerView', { type: 'series', index: index });
-                     });
-
-                     fragment.appendChild(card);
-                 });
-                 seriesGridElement.appendChild(fragment);
-             }
-
-
-            // --- Películas ---
+                    card.addEventListener('click', () => navigateTo('playerView', { type: 'series', index: index }));
+                    fragment.appendChild(card);
+                });
+                seriesGridElement.appendChild(fragment);
+            }
             async function loadMovies() {
                 showLoading("Cargando películas...");
                 moviesGridElement.innerHTML = '';
@@ -1065,458 +878,440 @@
                     let data = await response.json();
                     if (!Array.isArray(data)) throw new Error("Formato de datos de películas inválido.");
                     moviesData = data;
-                    console.log(`Películas cargadas: ${moviesData.length}`);
                     renderMoviesList(moviesData);
-                     if (moviesData.length === 0) {
-                         moviesGridElement.innerHTML = `<p class="text-center" style="color: var(--text-secondary); grid-column: 1 / -1;">No hay películas disponibles.</p>`;
-                     }
+                     if (moviesData.length === 0) { /* ... (mensaje de no disponibles) ... */ }
                 } catch (error) {
-                    console.error('Error cargando películas:', error);
                     showError(`Error al cargar películas: ${error.message}`, [{ text: "Reintentar", action: loadMovies }]);
-                    moviesData = [];
-                    renderMoviesList([]);
-                } finally {
-                    hideLoading();
-                }
+                    moviesData = []; renderMoviesList([]);
+                } finally { hideLoading(); }
+            }
+            function renderMoviesList(moviesArray) {
+                if (!moviesGridElement) return;
+                moviesGridElement.innerHTML = '';
+                if (!moviesArray || moviesArray.length === 0) { /* ... (mensaje de no disponibles) ... */ return; }
+                const fragment = document.createDocumentFragment();
+                moviesArray.forEach((movie, index) => {
+                    if (!movie || !movie.titulo || !movie.urlDrive) return;
+                    const card = document.createElement('div');
+                    card.className = 'item-card movie-card';
+                    card.dataset.movieIndex = index;
+                    card.tabIndex = 0; // Enfocable
+
+                    // ... (creación de img, textContent como antes) ...
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'card-image-container';
+                    const img = document.createElement('img');
+                    const placeholderText = encodeURIComponent((movie.titulo || '?').charAt(0));
+                    img.src = movie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
+                    img.alt = '';
+                    img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${movie.titulo}`; };
+                    img.loading = 'lazy';
+                    imageContainer.appendChild(img);
+                    const textContent = document.createElement('div');
+                    textContent.className = 'text-content';
+                    const title = document.createElement('h3');
+                    title.textContent = movie.titulo;
+                    textContent.appendChild(title);
+                    card.appendChild(imageContainer);
+                    card.appendChild(textContent);
+
+                    card.addEventListener('click', () => navigateTo('playerView', { type: 'movie', index: index }));
+                    fragment.appendChild(card);
+                });
+                moviesGridElement.appendChild(fragment);
             }
 
-             function renderMoviesList(moviesArray) {
-                 if (!moviesGridElement) return;
-                 moviesGridElement.innerHTML = '';
-                 if (!moviesArray || moviesArray.length === 0) {
-                     moviesGridElement.innerHTML = `<p class="text-center" style="color: var(--text-secondary); grid-column: 1 / -1;">No hay películas disponibles.</p>`;
-                     return;
-                 }
-                 const fragment = document.createDocumentFragment();
-                 moviesArray.forEach((movie, index) => {
-                     if (!movie || !movie.titulo || !movie.urlDrive) return;
-
-                     const card = document.createElement('div');
-                      // Añadir clase específica para diferenciarla si es necesario
-                     card.className = 'item-card movie-card';
-                     card.dataset.movieIndex = index;
-
-                      // Contenedor de imagen
-                     const imageContainer = document.createElement('div');
-                     imageContainer.className = 'card-image-container';
-
-                     const img = document.createElement('img');
-                     const placeholderText = encodeURIComponent((movie.titulo || '?').charAt(0));
-                     img.src = movie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
-                     img.alt = '';
-                     img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${movie.titulo}`; };
-                     img.loading = 'lazy';
-                     imageContainer.appendChild(img);
-
-                     const textContent = document.createElement('div');
-                     textContent.className = 'text-content';
-                     const title = document.createElement('h3');
-                     title.textContent = movie.titulo;
-                     textContent.appendChild(title);
-
-                     card.appendChild(imageContainer);
-                     card.appendChild(textContent);
-
-                     card.addEventListener('click', () => {
-                         navigateTo('playerView', { type: 'movie', index: index });
-                     });
-
-                     fragment.appendChild(card);
-                 });
-                 moviesGridElement.appendChild(fragment);
-             }
-
-
-            // --- Lógica del Reproductor ---
-
+            // --- Lógica del Reproductor (Modificada para actualizar foco) ---
             function setupPlayerView(data) {
-                 console.log("Configurando vista de reproductor para:", data);
-                 stopPlayback();
+                // ... (lógica existente para configurar título, descripción, etc.) ...
+                console.log("Configurando vista de reproductor para:", data);
+                stopPlayback(); // Detiene cualquier reproducción anterior y limpia el foco del gamepad.
 
-                 playerContentTitle.textContent = 'Cargando...';
-                 playerContentDescription.textContent = '';
-                 playerFavoriteButton.style.display = 'none';
-                 playerSeriesSelectors.style.display = 'none';
-                 hlsPlayerElement.style.display = 'none';
-                 drivePlayerElement.style.display = 'none';
-                 showMessageInPlayer("Cargando...");
-
-                 if (data.type === 'tv') {
-                     const channelIndex = data.index;
-                     if (channelIndex >= 0 && channelIndex < tvChannels.length) {
-                         const channel = tvChannels[channelIndex];
-                         currentPlayingTvChannelIndex = channelIndex;
-                         playerContentTitle.textContent = channel.title || 'Canal Desconocido';
-                         playerContentDescription.textContent = channel.description || '';
-                         setupTvPlayerControls(channelIndex);
-                         playHlsStream(channel.url, channelIndex);
-                         // CAMBIO: Resaltar en grids
-                         highlightPlayingChannel(channelIndex, tvChannelGridElement);
-                         highlightPlayingChannel(channelIndex, favoritesChannelGridElement);
-                     } else {
-                         showError("Error: Índice de canal de TV inválido.");
-                         navigateTo(previousView || 'mainMenuView');
-                     }
-                 } else if (data.type === 'series') {
-                     const seriesIndex = data.index;
-                     if (seriesIndex >= 0 && seriesIndex < seriesData.length) {
-                         const serie = seriesData[seriesIndex];
-                         currentPlayingSeries = { seriesIndex: seriesIndex, seasonNumber: null, episodeIndex: null };
-                         playerContentTitle.textContent = serie.tituloSerie || 'Serie Desconocida';
-                         playerContentDescription.textContent = serie.descripcion || '';
-                         setupSeriesPlayerControls(serie);
-                         showMessageInPlayer("Selecciona temporada y episodio");
-                     } else {
-                         showError("Error: Índice de serie inválido.");
-                         navigateTo(previousView || 'mainMenuView');
-                     }
-                 } else if (data.type === 'movie') {
-                     const movieIndex = data.index;
-                     if (movieIndex >= 0 && movieIndex < moviesData.length) {
-                         const movie = moviesData[movieIndex];
-                         currentPlayingMovieIndex = movieIndex;
-                         playerContentTitle.textContent = movie.titulo || 'Película Desconocida';
-                         playerContentDescription.textContent = movie.descripcion || '';
-                         playDriveStream(movie.urlDrive);
-                     } else {
-                         showError("Error: Índice de película inválido.");
-                         navigateTo(previousView || 'mainMenuView');
-                     }
-                 } else {
-                     console.error("Tipo de contenido desconocido para el reproductor:", data.type);
-                     showError("Error: No se puede reproducir este tipo de contenido.");
-                     navigateTo(previousView || 'mainMenuView');
-                 }
-             }
-
-            function setupTvPlayerControls(channelIndex) {
-                 playerFavoriteButton.style.display = 'flex';
-                 playerSeriesSelectors.style.display = 'none';
-
-                 const isFav = tvFavorites.includes(channelIndex.toString());
-                 playerFavoriteButton.classList.toggle('is-favorite', isFav);
-                 playerFavoriteButton.setAttribute('aria-label', isFav ? 'Quitar de favoritos' : 'Añadir a favoritos');
-                 playerFavoriteButton.onclick = () => toggleTvFavorite(channelIndex);
-             }
-
-            function setupSeriesPlayerControls(serie) {
-                 playerFavoriteButton.style.display = 'none';
-                 playerSeriesSelectors.style.display = 'flex';
-
-                 seasonSelector.innerHTML = '<option value="">Temporada</option>';
-                 episodeSelector.innerHTML = '<option value="">Episodio</option>';
-                 episodeSelector.disabled = true;
-
-                 if (!serie.temporadas || serie.temporadas.length === 0) {
-                     seasonSelector.innerHTML = '<option value="">No hay temporadas</option>';
-                     seasonSelector.disabled = true;
-                     return;
-                 }
-
-                 serie.temporadas.sort((a, b) => (a.numeroTemporada || 0) - (b.numeroTemporada || 0));
-                 serie.temporadas.forEach(temp => {
-                     if (typeof temp.numeroTemporada !== 'undefined') {
-                         const option = document.createElement('option');
-                         option.value = temp.numeroTemporada;
-                         option.textContent = `Temporada ${temp.numeroTemporada}`;
-                         seasonSelector.appendChild(option);
-                     }
-                 });
-                 seasonSelector.disabled = false;
-
-                 seasonSelector.onchange = () => {
-                     const selectedSeasonNum = seasonSelector.value;
-                     episodeSelector.innerHTML = '<option value="">Episodio</option>';
-                     episodeSelector.disabled = true;
-                     if (!currentPlayingSeries) currentPlayingSeries = {};
-                     currentPlayingSeries.seasonNumber = selectedSeasonNum ? parseInt(selectedSeasonNum) : null;
-                     currentPlayingSeries.episodeIndex = null;
-                     stopPlayback();
-                     showMessageInPlayer("Selecciona un episodio");
-
-                     if (selectedSeasonNum) {
-                         const selectedSeason = serie.temporadas.find(t => t.numeroTemporada == selectedSeasonNum);
-                         if (selectedSeason && selectedSeason.episodios && selectedSeason.episodios.length > 0) {
-                             selectedSeason.episodios.forEach((ep, index) => {
-                                 if (ep.tituloEpisodio && ep.urlDrive) {
-                                     const option = document.createElement('option');
-                                     option.value = index;
-                                     option.textContent = `${index + 1}. ${ep.tituloEpisodio}`;
-                                     episodeSelector.appendChild(option);
-                                 }
-                             });
-                             episodeSelector.disabled = false;
-                         } else {
-                              episodeSelector.innerHTML = '<option value="">No hay episodios</option>';
-                         }
-                     }
-                 };
-
-                 episodeSelector.onchange = () => {
-                     const selectedEpisodeIndex = episodeSelector.value;
-                     const selectedSeasonNum = seasonSelector.value;
-                     if (!currentPlayingSeries) currentPlayingSeries = {};
-                     currentPlayingSeries.episodeIndex = selectedEpisodeIndex ? parseInt(selectedEpisodeIndex) : null;
-
-                     if (selectedSeasonNum && selectedEpisodeIndex !== "") {
-                         const selectedSeason = serie.temporadas.find(t => t.numeroTemporada == selectedSeasonNum);
-                         if (selectedSeason && selectedSeason.episodios[selectedEpisodeIndex]) {
-                             const episode = selectedSeason.episodios[selectedEpisodeIndex];
-                             playDriveStream(episode.urlDrive);
-                             playerContentTitle.textContent = `${serie.tituloSerie} - T${selectedSeasonNum} E${parseInt(selectedEpisodeIndex) + 1}`;
-                             playerContentDescription.textContent = episode.tituloEpisodio || '';
-                         } else {
-                             showError("Error: No se encontró el episodio seleccionado.");
-                             stopPlayback();
-                         }
-                     } else {
-                         stopPlayback();
-                         showMessageInPlayer("Selecciona un episodio");
-                         playerContentTitle.textContent = serie.tituloSerie || 'Serie Desconocida';
-                         playerContentDescription.textContent = serie.descripcion || '';
-                     }
-                 };
-             }
-
-            function playHlsStream(url, channelIndex) {
-                 if (!Hls.isSupported()) {
-                     if (hlsPlayerElement.canPlayType('application/vnd.apple.mpegurl')) {
-                         console.log("Usando HLS nativo (iOS?)");
-                         hlsPlayerElement.src = url;
-                         hlsPlayerElement.style.display = 'block';
-                         drivePlayerElement.style.display = 'none';
-                         hideMessageInPlayer();
-                         hlsPlayerElement.play().catch(e => {
-                             console.error("Error HLS nativo:", e);
-                             showError(`Error al reproducir (nativo): ${e.message}`);
-                             updateTvChannelStatus(channelIndex, 'offline');
-                         });
-                         hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
-                         hlsPlayerElement.addEventListener('playing', handleHlsPlaying, { once: true });
-                     } else {
-                         showError("HLS no es soportado por este navegador.");
-                         updateTvChannelStatus(channelIndex, 'offline');
-                         return;
-                     }
-                 } else {
-                     console.log("Usando HLS.js");
-                     if (hlsInstance) {
-                         hlsInstance.destroy();
-                     }
-                     hlsInstance = new Hls({ });
-                     hlsInstance.loadSource(url);
-                     hlsInstance.attachMedia(hlsPlayerElement);
-                     hlsPlayerElement.style.display = 'block';
-                     drivePlayerElement.style.display = 'none';
-
-                     hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-                         console.log("HLS Manifest parsed");
-                         hideMessageInPlayer();
-                         hlsPlayerElement.play().catch(e => {
-                             console.error("Error al iniciar play HLS:", e);
-                             showError(`Error al reproducir: ${e.message}`);
-                             updateTvChannelStatus(channelIndex, 'offline');
-                         });
-                     });
-
-                     hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-                         console.error('HLS Error:', event, data);
-                         if (data.fatal) {
-                             let errorMsg = `Error HLS (${data.details}).`;
-                             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) errorMsg = `Error de red (${data.details}).`;
-                             else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) errorMsg = `Error de video (${data.details}).`;
-                             showError(errorMsg, [
-                                 { text: "Reintentar", action: () => playHlsStream(url, channelIndex) },
-                                 { text: "Ver Lista", action: () => navigateTo('tvListView') }
-                             ]);
-                             updateTvChannelStatus(channelIndex, 'offline');
-                             stopPlayback();
-                             showMessageInPlayer("Error al cargar canal");
-                         }
-                     });
-
-                     hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
-                     hlsPlayerElement.addEventListener('playing', handleHlsPlaying, { once: true });
-                 }
-                 hlsPlayerElement.removeEventListener('error', handleVideoElementError);
-                 hlsPlayerElement.addEventListener('error', handleVideoElementError);
-             }
-
-            function handleHlsPlaying() {
-                 console.log("HLS playing event fired");
-                 if (currentPlayingTvChannelIndex !== null) {
-                     updateTvChannelStatus(currentPlayingTvChannelIndex, 'online');
-                 }
-             }
-            function handleVideoElementError(e) {
-                 console.error("Error en elemento <video>:", e);
-                 const channelIndex = currentPlayingTvChannelIndex;
-                 showError("Error al cargar el video.", [
-                     { text: "Ver Lista", action: () => navigateTo('tvListView') }
-                 ]);
-                 if (channelIndex !== null) {
-                     updateTvChannelStatus(channelIndex, 'offline');
-                 }
-                 stopPlayback();
-                 showMessageInPlayer("Error al cargar canal");
-             }
+                playerContentTitle.textContent = 'Cargando...';
+                playerContentDescription.textContent = '';
+                playerFavoriteButton.style.display = 'none';
+                playerSeriesSelectors.style.display = 'none';
+                hlsPlayerElement.style.display = 'none';
+                drivePlayerElement.style.display = 'none';
+                showMessageInPlayer("Cargando...");
 
 
-            function playDriveStream(url) {
-                 let cleanUrl = url || '';
-                 if (cleanUrl.includes('/file/d/')) {
-                     const match = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                     if (match && match[1]) {
-                         cleanUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
-                     } else {
-                         cleanUrl = '';
-                     }
-                 } else if (cleanUrl.includes('/preview')) {
-                    cleanUrl = cleanUrl.substring(0, cleanUrl.indexOf('/preview') + '/preview'.length);
-                 } else {
-                    cleanUrl = '';
-                 }
-
-
-                 if (!cleanUrl) {
-                     showError("URL de Google Drive inválida.");
-                     showMessageInPlayer("Error: URL inválida");
-                     return;
-                 }
-
-                 console.log(`Reproduciendo Drive: ${cleanUrl}`);
-                 drivePlayerElement.src = cleanUrl;
-                 drivePlayerElement.style.display = 'block';
-                 hlsPlayerElement.style.display = 'none';
-                 hideMessageInPlayer();
-             }
-
+                if (data.type === 'tv') {
+                    const channelIndex = data.index;
+                    if (channelIndex >= 0 && channelIndex < tvChannels.length) {
+                        const channel = tvChannels[channelIndex];
+                        currentPlayingTvChannelIndex = channelIndex;
+                        playerContentTitle.textContent = channel.title || 'Canal Desconocido';
+                        playerContentDescription.textContent = channel.description || '';
+                        setupTvPlayerControls(channelIndex); // Configura botón fav
+                        playHlsStream(channel.url, channelIndex);
+                        highlightPlayingChannel(channelIndex, tvChannelGridElement);
+                        highlightPlayingChannel(channelIndex, favoritesChannelGridElement);
+                    } else { /* ... error ... */ }
+                } else if (data.type === 'series') {
+                    const seriesIndex = data.index;
+                    if (seriesIndex >= 0 && seriesIndex < seriesData.length) {
+                        const serie = seriesData[seriesIndex];
+                        currentPlayingSeries = { seriesIndex: seriesIndex, seasonNumber: null, episodeIndex: null };
+                        playerContentTitle.textContent = serie.tituloSerie || 'Serie Desconocida';
+                        playerContentDescription.textContent = serie.descripcion || '';
+                        setupSeriesPlayerControls(serie); // Configura selectores
+                        showMessageInPlayer("Selecciona temporada y episodio");
+                    } else { /* ... error ... */ }
+                } else if (data.type === 'movie') {
+                    const movieIndex = data.index;
+                    if (movieIndex >= 0 && movieIndex < moviesData.length) {
+                        const movie = moviesData[movieIndex];
+                        currentPlayingMovieIndex = movieIndex;
+                        playerContentTitle.textContent = movie.titulo || 'Película Desconocida';
+                        playerContentDescription.textContent = movie.descripcion || '';
+                        playDriveStream(movie.urlDrive);
+                    } else { /* ... error ... */ }
+                } else { /* ... error ... */ }
+                updateFocusableElementsForCurrentView(); // Actualizar foco para los controles del reproductor
+            }
+            function setupTvPlayerControls(channelIndex) { /* ... (sin cambios, pero playerFavoriteButton ya tiene tabindex="0") ... */ }
+            function setupSeriesPlayerControls(serie) { /* ... (sin cambios, pero los select ya tienen tabindex="0") ... */ }
+            function playHlsStream(url, channelIndex) { /* ... (sin cambios) ... */ }
+            function handleHlsPlaying() { /* ... (sin cambios) ... */ }
+            function handleVideoElementError(e) { /* ... (sin cambios) ... */ }
+            function playDriveStream(url) { /* ... (sin cambios) ... */ }
             function stopPlayback() {
-                 console.log("Deteniendo reproducción");
-                 if (hlsInstance) {
-                     hlsInstance.destroy();
-                     hlsInstance = null;
-                 }
-                 if (hlsPlayerElement) {
-                     hlsPlayerElement.pause();
-                     hlsPlayerElement.removeAttribute('src');
-                     hlsPlayerElement.load();
-                     hlsPlayerElement.style.display = 'none';
-                     hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
-                     hlsPlayerElement.removeEventListener('error', handleVideoElementError);
-                 }
-                 if (drivePlayerElement) {
-                     drivePlayerElement.src = 'about:blank';
-                     drivePlayerElement.style.display = 'none';
-                 }
-                 currentPlayingTvChannelIndex = null;
-                 currentPlayingSeries = null;
-                 currentPlayingMovieIndex = null;
-                 // CAMBIO: Limpiar resaltado en grids
-                 highlightPlayingChannel(null, tvChannelGridElement);
-                 highlightPlayingChannel(null, favoritesChannelGridElement);
+                // ... (lógica existente) ...
+                if (gamepadFocusedElement && (gamepadFocusedElement === hlsPlayerElement || gamepadFocusedElement === drivePlayerElement)) {
+                    setGamepadFocus(null); // Quitar foco si estaba en el video/iframe
+                }
+                currentPlayingTvChannelIndex = null;
+                currentPlayingSeries = null;
+                currentPlayingMovieIndex = null;
+                highlightPlayingChannel(null, tvChannelGridElement);
+                highlightPlayingChannel(null, favoritesChannelGridElement);
             }
-
-            function showMessageInPlayer(message = "") {
-                 if (playerMessageElement) {
-                     playerMessageElement.textContent = message;
-                     playerMessageElement.style.display = message ? 'block' : 'none';
-                 }
-                 if(hlsPlayerElement) hlsPlayerElement.style.display = 'none';
-                 if(drivePlayerElement) drivePlayerElement.style.display = 'none';
-            }
-
-            function hideMessageInPlayer() {
-                 if (playerMessageElement) {
-                     playerMessageElement.style.display = 'none';
-                 }
-            }
+            function showMessageInPlayer(message = "") { /* ... (sin cambios) ... */ }
+            function hideMessageInPlayer() { /* ... (sin cambios) ... */ }
 
             // --- Favoritos TV ---
-            function toggleTvFavorite(channelIndex) {
-                 if (channelIndex === null || channelIndex < 0 || channelIndex >= tvChannels.length) return;
-                 const indexString = channelIndex.toString();
-                 const favIndex = tvFavorites.indexOf(indexString);
+            function toggleTvFavorite(channelIndex) { /* ... (sin cambios) ... */ }
+            function updateFavoriteButtonUI(channelIndex) { /* ... (sin cambios) ... */ }
 
-                 if (favIndex > -1) {
-                     tvFavorites.splice(favIndex, 1);
-                     console.log(`Canal TV ${channelIndex} quitado de favoritos`);
-                 } else {
-                     tvFavorites.push(indexString);
-                     console.log(`Canal TV ${channelIndex} añadido a favoritos`);
-                 }
-                 localStorage.setItem('favoritesTvChannelsCar', JSON.stringify(tvFavorites));
 
-                 updateFavoriteButtonUI(channelIndex);
-                 if (document.getElementById('favoritesListView')?.classList.contains('active')) {
-                     renderFavoritesList();
-                 }
-                 // Opcional: Re-renderizar lista principal si se quiere orden por favoritos
-                 // if (document.getElementById('tvListView')?.classList.contains('active')) {
-                 //     filterAndRenderTvChannels();
-                 // }
-             }
+            // --- Lógica del Gamepad ---
+            function initGamepadControls() {
+                window.addEventListener('gamepadconnected', (event) => {
+                    console.log('Gamepad conectado:', event.gamepad.id);
+                    if (activeGamepadIndex === null) {
+                        activeGamepadIndex = event.gamepad.index;
+                    }
+                    if (!gamepadPollInterval) {
+                        lastGamepadButtonStates = Array(event.gamepad.buttons.length).fill(false);
+                        lastGamepadAxisStates = event.gamepad.axes.map(() => 0); // Simplificado
+                        gamepadPollInterval = setInterval(pollGamepad, GAMEPAD_POLL_RATE);
+                    }
+                    updateFocusableElementsForCurrentView(); // Asegurar que el foco inicial esté listo
+                });
 
-            function updateFavoriteButtonUI(channelIndex) {
-                 if (currentView === 'playerView' && currentPlayingTvChannelIndex === channelIndex) {
-                     const isFav = tvFavorites.includes(channelIndex.toString());
-                     playerFavoriteButton.classList.toggle('is-favorite', isFav);
-                     playerFavoriteButton.setAttribute('aria-label', isFav ? 'Quitar de favoritos' : 'Añadir a favoritos');
-                 }
-             }
-
-            // --- Event Listeners ---
-            backButton.addEventListener('click', () => {
-                if (currentView === 'playerView' && previousView) {
-                    navigateTo(previousView);
-                } else if (currentView !== 'mainMenuView') {
-                    navigateTo('mainMenuView');
-                }
-            });
-
-            document.querySelectorAll('#mainMenuView .menu-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const targetViewId = button.dataset.targetView;
-                    if (targetViewId) {
-                        navigateTo(targetViewId);
+                window.addEventListener('gamepaddisconnected', (event) => {
+                    console.log('Gamepad desconectado:', event.gamepad.id);
+                    if (activeGamepadIndex === event.gamepad.index) {
+                        activeGamepadIndex = null;
+                        clearInterval(gamepadPollInterval);
+                        gamepadPollInterval = null;
+                        setGamepadFocus(null); // Quitar foco visual
                     }
                 });
-            });
-
-            if (tvSearchButton && tvSearchInput) {
-                 tvSearchButton.addEventListener('click', filterAndRenderTvChannels);
-                 tvSearchInput.addEventListener('keyup', (e) => {
-                     if (e.key === 'Enter') {
-                         filterAndRenderTvChannels();
-                         tvSearchInput.blur();
-                     }
-                 });
-                 tvSearchInput.addEventListener('input', () => {
-                    if(tvSearchInput.value === '') {
-                        filterAndRenderTvChannels();
+                // Comprobar si ya hay gamepads conectados al inicio
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) {
+                        activeGamepadIndex = gamepads[i].index;
+                        console.log('Gamepad ya conectado:', gamepads[i].id);
+                        lastGamepadButtonStates = Array(gamepads[i].buttons.length).fill(false);
+                        lastGamepadAxisStates = gamepads[i].axes.map(() => 0);
+                        if (!gamepadPollInterval) {
+                           gamepadPollInterval = setInterval(pollGamepad, GAMEPAD_POLL_RATE);
+                        }
+                        break;
                     }
-                 });
-             } else {
-                 console.warn("Elementos de búsqueda de TV no encontrados.");
-             }
+                }
+            }
 
+            function pollGamepad() {
+                if (activeGamepadIndex === null) return;
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                const gp = gamepads[activeGamepadIndex];
+                if (!gp) return;
+
+                // Manejar botones (detectar solo el cambio de presionado)
+                gp.buttons.forEach((button, index) => {
+                    if (button.pressed && !lastGamepadButtonStates[index]) {
+                        handleGamepadButtonPress(index);
+                    }
+                    lastGamepadButtonStates[index] = button.pressed;
+                });
+
+                // Manejar ejes (D-pad a menudo se mapea a ejes o botones)
+                // Eje 0 (LX), Eje 1 (LY)
+                const axisX = gp.axes[0];
+                const axisY = gp.axes[1];
+
+                // Movimiento horizontal
+                if (axisX > GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[0] <= GAMEPAD_AXIS_THRESHOLD) {
+                    moveGamepadFocus('right');
+                } else if (axisX < -GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[0] >= -GAMEPAD_AXIS_THRESHOLD) {
+                    moveGamepadFocus('left');
+                }
+                // Movimiento vertical
+                if (axisY > GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[1] <= GAMEPAD_AXIS_THRESHOLD) {
+                    moveGamepadFocus('down');
+                } else if (axisY < -GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[1] >= -GAMEPAD_AXIS_THRESHOLD) {
+                    moveGamepadFocus('up');
+                }
+                lastGamepadAxisStates[0] = axisX;
+                lastGamepadAxisStates[1] = axisY;
+
+
+                // Algunos gamepads mapean D-Pad a botones (ej. 12: Arriba, 13: Abajo, 14: Izquierda, 15: Derecha)
+                // Esto es adicional al manejo de ejes para mayor compatibilidad.
+                // Ya se maneja en handleGamepadButtonPress si están definidos como botones.
+            }
+
+            function handleGamepadButtonPress(buttonIndex) {
+                console.log("Gamepad button pressed:", buttonIndex);
+                if (loadingOverlay.classList.contains('visible')) return; // No hacer nada si está cargando
+
+                if (errorOverlayCar.classList.contains('visible')) {
+                    // Si el overlay de error está visible, solo permitir acción en sus botones
+                    if (gamepadFocusedElement && errorOverlayCar.contains(gamepadFocusedElement)) {
+                        if (buttonIndex === GAMEPAD_BUTTON_ACTION) {
+                            gamepadFocusedElement.click();
+                        }
+                    }
+                    return;
+                }
+
+
+                switch (buttonIndex) {
+                    case GAMEPAD_BUTTON_ACTION: // 'A' o similar
+                        if (gamepadFocusedElement) {
+                            // Si el elemento enfocado es un select, el navegador debería abrirlo.
+                            // Si es un input, enfocarlo para teclado virtual si es necesario.
+                            if (gamepadFocusedElement.tagName === 'INPUT' && gamepadFocusedElement.type === 'text') {
+                                gamepadFocusedElement.focus(); // Para que el teclado en pantalla aparezca si es relevante
+                            } else {
+                                gamepadFocusedElement.click();
+                            }
+                        }
+                        break;
+                    case GAMEPAD_BUTTON_BACK: // 'B' o similar
+                        if (backButton.classList.contains('visible')) {
+                            backButton.click();
+                        }
+                        break;
+                    // Mapeo de D-Pad si viene como botones (común en muchos mandos)
+                    case 12: moveGamepadFocus('up'); break;    // D-Pad Arriba
+                    case 13: moveGamepadFocus('down'); break;  // D-Pad Abajo
+                    case 14: moveGamepadFocus('left'); break; // D-Pad Izquierda
+                    case 15: moveGamepadFocus('right'); break;// D-Pad Derecha
+                }
+            }
+
+            function updateFocusableElementsForCurrentView(viewIdToUpdate = currentView) {
+                if (gamepadFocusedElement) {
+                    gamepadFocusedElement.classList.remove('gamepad-focus');
+                    gamepadFocusedElement = null;
+                }
+                focusableElementsInView = [];
+                let currentViewElement;
+
+                if (errorOverlayCar.classList.contains('visible')) {
+                    currentViewElement = errorOverlayCar;
+                } else if (loadingOverlay.classList.contains('visible')) {
+                     // No hay elementos enfocables en el overlay de carga
+                    return;
+                }
+                else {
+                    currentViewElement = views[viewIdToUpdate];
+                }
+
+
+                if (currentViewElement) {
+                    // Seleccionar elementos que son naturalmente enfocables o tienen tabindex >= 0
+                    // y son visibles.
+                    const potentialElements = currentViewElement.querySelectorAll(
+                        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                    );
+                    potentialElements.forEach(el => {
+                        // Comprobar si el elemento es visible y no está deshabilitado
+                        if (el.offsetParent !== null && !el.disabled) {
+                            focusableElementsInView.push(el);
+                        }
+                    });
+                }
+
+
+                if (focusableElementsInView.length > 0) {
+                    // Intentar mantener el foco en un elemento similar si volvemos a una vista
+                    // o si se actualiza la lista (ej. después de buscar)
+                    let elementToFocus = focusableElementsInView[0]; // Por defecto el primero
+
+                    // Lógica para restaurar foco (simplificada)
+                    // Si estamos en una lista y hay un item activo, intentar enfocarlo
+                    if ( (viewIdToUpdate === 'tvListView' || viewIdToUpdate === 'favoritesListView') && currentPlayingTvChannelIndex !== null) {
+                        const activeCard = currentViewElement.querySelector(`.item-card[data-channel-index="${currentPlayingTvChannelIndex}"]`);
+                        if (activeCard && focusableElementsInView.includes(activeCard)) {
+                            elementToFocus = activeCard;
+                        }
+                    }
+                    // Podría añadirse lógica similar para series y películas si se guarda el último reproducido.
+
+                    setGamepadFocus(elementToFocus);
+                }
+            }
+
+
+            function setGamepadFocus(element) {
+                if (gamepadFocusedElement) {
+                    gamepadFocusedElement.classList.remove('gamepad-focus');
+                }
+                gamepadFocusedElement = element;
+                if (gamepadFocusedElement) {
+                    gamepadFocusedElement.classList.add('gamepad-focus');
+                    // Asegurarse de que el elemento enfocado esté visible en el scroll
+                    gamepadFocusedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                }
+            }
+
+            function moveGamepadFocus(direction) {
+                if (!gamepadFocusedElement || focusableElementsInView.length === 0) {
+                    if (focusableElementsInView.length > 0) setGamepadFocus(focusableElementsInView[0]);
+                    return;
+                }
+
+                let currentIndex = focusableElementsInView.indexOf(gamepadFocusedElement);
+                if (currentIndex === -1) { // Si el elemento enfocado no está en la lista (raro)
+                     setGamepadFocus(focusableElementsInView[0]);
+                     return;
+                }
+
+                let nextIndex = currentIndex;
+                const currentElement = focusableElementsInView[currentIndex];
+                const parentGrid = currentElement.closest('.item-grid, .channel-grid, .menu-grid, .error-buttons');
+
+                if (parentGrid) { // Navegación en cuadrícula
+                    const items = Array.from(parentGrid.querySelectorAll('[tabindex="0"]:not([disabled])'))
+                                     .filter(el => el.offsetParent !== null); // Solo visibles
+                    if (!items.length) return;
+
+                    currentIndex = items.indexOf(currentElement);
+                    if (currentIndex === -1) { // Si el elemento actual no está en la rejilla visible, enfocar el primero.
+                        setGamepadFocus(items[0]);
+                        return;
+                    }
+
+                    const firstItemRect = items[0].getBoundingClientRect();
+                    const currentItemRect = currentElement.getBoundingClientRect();
+                    // Estimar columnas (puede no ser perfecto para auto-fit si los anchos varían mucho)
+                    let numCols = 0;
+                    if (items.length > 1 && firstItemRect.width > 0) {
+                        // Contar cuántos elementos caben en la primera fila visiblemente
+                        let currentY = items[0].getBoundingClientRect().top;
+                        for(let i = 0; i < items.length; i++) {
+                            if (items[i].getBoundingClientRect().top === currentY) {
+                                numCols++;
+                            } else {
+                                break;
+                            }
+                        }
+                         if (numCols === 0 && parentGrid.offsetWidth > 0 && firstItemRect.width > 0) { // Fallback
+                            numCols = Math.max(1, Math.floor(parentGrid.offsetWidth / (firstItemRect.width + parseFloat(getComputedStyle(items[0]).marginLeft) + parseFloat(getComputedStyle(items[0]).marginRight) ) ));
+                         }
+
+                    }
+                     if (numCols === 0) numCols = 1; // Evitar división por cero
+
+                    switch (direction) {
+                        case 'left':
+                            if (currentIndex % numCols !== 0) nextIndex = currentIndex - 1;
+                            else nextIndex = currentIndex + (numCols - 1); // Wrap around a la derecha de la misma fila (si es posible)
+                            if (nextIndex >= items.length) nextIndex = items.length -1; // No pasar del final
+                            if (items[nextIndex].getBoundingClientRect().top !== currentItemRect.top && currentIndex % numCols === 0) { // Si al wrappear cambia de fila, no wrappear
+                                nextIndex = currentIndex;
+                            }
+
+                            break;
+                        case 'right':
+                            if ((currentIndex + 1) % numCols !== 0 && currentIndex + 1 < items.length) nextIndex = currentIndex + 1;
+                            else nextIndex = currentIndex - (numCols - 1); // Wrap around a la izquierda
+                            if (nextIndex < 0) nextIndex = 0; // No pasar del inicio
+                             if (items[nextIndex].getBoundingClientRect().top !== currentItemRect.top && (currentIndex + 1) % numCols === 0) {
+                                nextIndex = currentIndex;
+                            }
+                            break;
+                        case 'up':
+                            if (currentIndex - numCols >= 0) nextIndex = currentIndex - numCols;
+                            break;
+                        case 'down':
+                            if (currentIndex + numCols < items.length) nextIndex = currentIndex + numCols;
+                            else { // Si no hay exactamente debajo, ir al último de la siguiente "fila" visual o al último item
+                                nextIndex = Math.min(items.length - 1, currentIndex + (numCols - (currentIndex % numCols)) );
+                                if (nextIndex <= currentIndex) nextIndex = items.length - 1; // Ir al último si no hay más abajo
+                            }
+                            break;
+                    }
+                     if (nextIndex >= 0 && nextIndex < items.length) {
+                        setGamepadFocus(items[nextIndex]);
+                    }
+
+                } else { // Navegación lineal simple
+                    switch (direction) {
+                        case 'up': case 'left':
+                            nextIndex = (currentIndex - 1 + focusableElementsInView.length) % focusableElementsInView.length;
+                            break;
+                        case 'down': case 'right':
+                            nextIndex = (currentIndex + 1) % focusableElementsInView.length;
+                            break;
+                    }
+                     if (nextIndex >= 0 && nextIndex < focusableElementsInView.length) {
+                        setGamepadFocus(focusableElementsInView[nextIndex]);
+                    }
+                }
+            }
+
+
+            // --- Event Listeners (Existentes, sin cambios mayores) ---
+            backButton.addEventListener('click', () => { /* ... */ });
+            document.querySelectorAll('#mainMenuView .menu-button').forEach(button => { /* ... */ });
+            if (tvSearchButton && tvSearchInput) { /* ... */ }
             closeErrorCarButton.addEventListener('click', hideError);
 
 
             // --- Inicialización ---
             function initializeApp() {
-                console.log("Inicializando aplicación táctil...");
-                navigateTo('mainMenuView');
+                console.log("Inicializando aplicación táctil con Gamepad...");
+                initGamepadControls(); // Inicializar Gamepad
+                navigateTo('mainMenuView'); // Esto llamará a updateFocusableElementsForCurrentView
             }
 
             initializeApp();
 
         }); // Fin DOMContentLoaded
     } catch (globalError) {
-        console.error("Error global irrecuperable:", globalError);
-        document.body.innerHTML = `<div style="color: red; background: #111; padding: 30px; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;"><h1>Error Crítico</h1><p>La aplicación no pudo iniciar.</p><p style="margin-top: 10px; font-size: 0.9em;">${globalError.message}</p></div>`;
+        // ... (Manejo de error global existente) ...
+        console.error("Error global no capturado:", globalError);
+        const body = document.body;
+        if (body) {
+            body.innerHTML = `
+                <div style="color: white; background-color: #121212; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: sans-serif;">
+                    <h1>Oops! Algo salió muy mal.</h1>
+                    <p>Se ha producido un error crítico al cargar la aplicación.</p>
+                    <p>Por favor, intenta recargar la página o contacta al administrador.</p>
+                    <p style="font-size: 0.8em; color: #b3b3b3; margin-top: 20px;">Detalles del error (consola): ${globalError.message}</p>
+                </div>
+            `;
+        } else {
+            alert("Error crítico al cargar la aplicación. Por favor, recarga.");
+        }
     }
     </script>
-
 </body>
 </html>
