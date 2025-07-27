@@ -37,7 +37,7 @@
         }
         
         /* Asegurar que el video y el iframe de YouTube ocupen todo el contenedor */
-        #video-player, #youtube-player-container {
+        #video-player, #youtube-player-container, #youtube-player-iframe {
             width: 100%;
             height: 100%;
         }
@@ -46,12 +46,12 @@
 </head>
 <body class="bg-gray-900 text-gray-200 overflow-hidden h-screen">
 
-    <!-- Contenedor principal de la aplicación -->
-    <div id="app-container" class="flex h-full">
+    <!-- Contenedor principal de la aplicación, ahora relativo para posicionar el menú -->
+    <div id="app-container" class="relative h-full w-full">
 
-        <!-- Panel Izquierdo: Lista de Canales -->
-        <nav id="channel-list-container" class="w-1/3 lg:w-1/4 bg-gray-800 p-4 shadow-lg overflow-y-auto no-scrollbar transition-all duration-300">
-            <h1 class="text-2xl font-bold mb-4 text-white sticky top-0 bg-gray-800 py-2">Canales</h1>
+        <!-- Panel Izquierdo: Lista de Canales (Ahora posicionado absolutamente y oculto por defecto) -->
+        <nav id="channel-list-container" class="absolute top-0 left-0 h-full w-1/3 lg:w-1/4 bg-gray-800/90 backdrop-blur-sm p-4 shadow-lg overflow-y-auto no-scrollbar transition-transform duration-300 ease-in-out -translate-x-full z-20">
+            <h1 class="text-2xl font-bold mb-4 text-white sticky top-0 bg-gray-800/0 py-2">Canales</h1>
             <div id="loader" class="text-center py-10">
                 <p>Cargando lista de canales...</p>
             </div>
@@ -60,24 +60,26 @@
             </ul>
         </nav>
 
-        <!-- Panel Derecho: Reproductor de Video -->
-        <main id="player-area" class="w-2/3 lg:w-3/4 bg-black flex flex-col items-center justify-center relative">
+        <!-- Panel Derecho: Reproductor de Video (Ocupa todo el espacio por defecto) -->
+        <main id="player-area" class="h-full w-full bg-black flex flex-col items-center justify-center relative z-10">
             
             <!-- Contenedor para el reproductor de video HLS -->
             <video id="video-player" class="hidden" controls></video>
 
             <!-- Contenedor para el reproductor de YouTube -->
-            <div id="youtube-player-container" class="hidden"></div>
+            <div id="youtube-player-container" class="hidden">
+                <div id="youtube-player-iframe"></div>
+            </div>
             
             <!-- Mensaje de bienvenida o placeholder -->
-            <div id="player-placeholder" class="text-center text-gray-500">
+            <div id="player-placeholder" class="text-center text-gray-500 flex flex-col items-center justify-center">
                 <svg class="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55a1 1 0 011.45.89v6.22a1 1 0 01-1.45.89L15 15M5 4h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"></path></svg>
                 <h2 class="text-2xl font-semibold">Bienvenido</h2>
-                <p class="mt-2">Usa las flechas de tu control para navegar y 'OK'/'Enter' para seleccionar un canal.</p>
+                <p class="mt-2">Presiona cualquier tecla del mando para mostrar la lista de canales.</p>
             </div>
 
             <!-- Botón de Pantalla Completa -->
-            <button id="fullscreen-btn" class="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-opacity duration-300 opacity-0 hover:opacity-100 focus:opacity-100">
+            <button id="fullscreen-btn" class="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-opacity duration-300 opacity-0 hover:opacity-100 focus:opacity-100 z-30">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1v4m0 0h-4m4-4l-5 5M4 16v4m0 0h4m-4-4l5-5m11 1v-4m0 0h-4m4 4l-5-5"></path></svg>
             </button>
         </main>
@@ -90,6 +92,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         // --- CONSTANTES Y REFERENCIAS AL DOM ---
         const M3U_URL = 'https://raw.githubusercontent.com/sejo48/retrom3u/refs/heads/main/listaoficial.m3u';
+        const channelListContainer = document.getElementById('channel-list-container');
         const channelListEl = document.getElementById('channel-list');
         const loaderEl = document.getElementById('loader');
         const videoPlayerEl = document.getElementById('video-player');
@@ -103,45 +106,32 @@
         let currentChannelIndex = 0;
         let hls = null;
         let youtubePlayer = null;
-        let isPlayerActive = false; // Para saber si el foco está en el reproductor o en la lista
+        let isPlayerActive = false; // Para saber si un video está activo
+        let isListVisible = false;  // Para saber si la lista de canales está visible
 
         // --- INICIALIZACIÓN ---
         fetchAndParseM3U();
 
         // --- PARSER DE M3U ---
-        /**
-         * Descarga y procesa el archivo M3U para extraer la información de los canales.
-         */
         async function fetchAndParseM3U() {
             try {
-                // NOTA: El fetching directo puede fallar por CORS en algunos servidores.
-                // Para producción, se recomienda usar un proxy o alojar el M3U en el mismo dominio.
                 const response = await fetch(M3U_URL);
-                if (!response.ok) {
-                    throw new Error(`Error al cargar el archivo M3U: ${response.statusText}`);
-                }
+                if (!response.ok) throw new Error(`Error al cargar el archivo M3U: ${response.statusText}`);
                 const m3uText = await response.text();
                 
                 const lines = m3uText.split('\n').filter(line => line.trim() !== '');
                 let tempChannels = [];
-
                 for (let i = 0; i < lines.length; i++) {
                     if (lines[i].startsWith('#EXTINF')) {
                         const infoLine = lines[i];
                         const urlLine = lines[i + 1];
-
                         if (urlLine && (urlLine.startsWith('http') || urlLine.startsWith('https'))) {
                             const nameMatch = infoLine.match(/tvg-name="([^"]*)"/);
                             const logoMatch = infoLine.match(/tvg-logo="([^"]*)"/);
-                            const groupMatch = infoLine.match(/group-title="([^"]*)"/);
-                            
-                            // Si no hay tvg-name, se toma el nombre después de la última coma.
                             const fallbackName = infoLine.split(',').pop();
-
                             tempChannels.push({
                                 name: nameMatch ? nameMatch[1] : fallbackName,
                                 logo: logoMatch ? logoMatch[1] : 'https://placehold.co/40x40/1a202c/ffffff?text=TV',
-                                group: groupMatch ? groupMatch[1] : 'General',
                                 url: urlLine.trim()
                             });
                         }
@@ -149,26 +139,20 @@
                 }
                 channels = tempChannels;
                 renderChannelList();
-
             } catch (error) {
                 console.error('Error al procesar M3U:', error);
-                loaderEl.innerHTML = `<p class="text-red-400">No se pudo cargar la lista de canales. Inténtalo de nuevo más tarde.</p>`;
+                loaderEl.innerHTML = `<p class="text-red-400">No se pudo cargar la lista de canales.</p>`;
             }
         }
 
-        // --- RENDERIZADO DE LA UI ---
-        /**
-         * Dibuja la lista de canales en el DOM.
-         */
+        // --- RENDERIZADO Y MANEJO DE LA UI ---
         function renderChannelList() {
             if (channels.length === 0) {
                 loaderEl.innerHTML = `<p class="text-yellow-400">La lista de canales está vacía.</p>`;
                 return;
             }
-            
             loaderEl.style.display = 'none';
-            channelListEl.innerHTML = ''; // Limpiar lista anterior
-
+            channelListEl.innerHTML = '';
             channels.forEach((channel, index) => {
                 const li = document.createElement('li');
                 li.id = `channel-${index}`;
@@ -184,40 +168,51 @@
                 });
                 channelListEl.appendChild(li);
             });
-
-            updateFocus(); // Poner foco en el primer canal
+            updateFocus();
         }
 
-        /**
-         * Actualiza el estilo del elemento enfocado en la lista de canales.
-         */
         function updateFocus() {
             document.querySelectorAll('.channel-item').forEach((item, index) => {
                 if (index === currentChannelIndex) {
                     item.classList.add('focused');
-                    // Asegurarse de que el elemento enfocado esté visible en la pantalla
-                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (isListVisible) {
+                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 } else {
                     item.classList.remove('focused');
                 }
             });
         }
 
+        function showChannelList() {
+            if (isListVisible) return;
+            channelListContainer.classList.remove('-translate-x-full');
+            channelListContainer.classList.add('translate-x-0');
+            isListVisible = true;
+            updateFocus();
+        }
+
+        function hideChannelList() {
+            if (!isListVisible) return;
+            channelListContainer.classList.remove('translate-x-0');
+            channelListContainer.classList.add('-translate-x-full');
+            isListVisible = false;
+        }
+
         // --- MANEJO DEL CONTROL REMOTO (TECLADO) ---
         document.addEventListener('keydown', (e) => {
-            // Prevenir el comportamiento por defecto de las flechas (scroll)
-            if (['ArrowUp', 'ArrowDown', 'Enter', 'Backspace', 'Escape'].includes(e.key)) {
+            const relevantKeys = ['ArrowUp', 'ArrowDown', 'Enter', 'Backspace', 'Escape'];
+            if (relevantKeys.includes(e.key)) {
                 e.preventDefault();
             }
 
-            if (isPlayerActive) {
-                // Si el reproductor está activo, la tecla 'Back' lo detiene
-                if (e.key === 'Backspace' || e.key === 'Escape') {
-                    stopPlayer();
-                }
-                return; // Ignorar otras teclas mientras el reproductor está activo
+            // Si la lista de canales está oculta, cualquier tecla la muestra
+            if (!isListVisible) {
+                showChannelList();
+                return;
             }
 
+            // Si la lista está visible, se maneja la navegación
             switch (e.key) {
                 case 'ArrowUp':
                     if (currentChannelIndex > 0) {
@@ -232,19 +227,24 @@
                     }
                     break;
                 case 'Enter':
-                    playSelectedChannel();
+                    playSelectedChannel(); // Esto ocultará la lista
+                    break;
+                case 'Backspace':
+                case 'Escape':
+                    // Si un video está activo, lo detiene. Si no, oculta la lista.
+                    if (isPlayerActive) {
+                        stopPlayer();
+                    } else {
+                        hideChannelList();
+                    }
                     break;
             }
         });
 
         // --- LÓGICA DEL REPRODUCTOR ---
-        /**
-         * Inicia la reproducción del canal actualmente seleccionado.
-         */
         function playSelectedChannel() {
             if (channels.length === 0) return;
-
-            stopPlayer(true); // Detener cualquier reproducción anterior sin cambiar el estado de foco
+            stopPlayer(true); 
 
             const channel = channels[currentChannelIndex];
             const url = channel.url;
@@ -252,155 +252,88 @@
             playerPlaceholderEl.style.display = 'none';
             fullscreenBtn.classList.remove('opacity-0');
             isPlayerActive = true;
+            hideChannelList(); // Ocultar el menú al seleccionar un canal
 
             const youtubeId = getYouTubeVideoId(url);
-
-            if (youtubeId) {
-                playYouTubeVideo(youtubeId);
-            } else if (url.includes('.m3u8')) {
-                playHLSStream(url);
-            } else {
-                // Para otros formatos de video directos (mp4, etc.)
-                playDirectVideoStream(url);
-            }
+            if (youtubeId) playYouTubeVideo(youtubeId);
+            else if (url.includes('.m3u8')) playHLSStream(url);
+            else playDirectVideoStream(url);
         }
         
-        /**
-         * Reproduce un stream de video HLS (.m3u8).
-         * @param {string} url - La URL del stream HLS.
-         */
         function playHLSStream(url) {
             youtubePlayerContainerEl.style.display = 'none';
             videoPlayerEl.style.display = 'block';
-
             if (Hls.isSupported()) {
                 if (hls) hls.destroy();
                 hls = new Hls();
                 hls.loadSource(url);
                 hls.attachMedia(videoPlayerEl);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    videoPlayerEl.play().catch(e => console.error("Error al reproducir HLS:", e));
-                });
+                hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayerEl.play().catch(e => console.error("Error HLS:", e)));
                 hls.on(Hls.Events.ERROR, (event, data) => {
-                    if (data.fatal) {
-                        console.error('Error fatal de HLS:', data);
-                        showPlayerError('No se pudo reproducir este canal.');
-                    }
+                    if (data.fatal) showPlayerError('No se pudo reproducir este canal.');
                 });
             } else if (videoPlayerEl.canPlayType('application/vnd.apple.mpegurl')) {
-                // Soporte nativo en Safari/iOS
                 videoPlayerEl.src = url;
-                videoPlayerEl.play().catch(e => console.error("Error al reproducir HLS nativo:", e));
+                videoPlayerEl.play().catch(e => console.error("Error HLS nativo:", e));
             } else {
-                showPlayerError('Tu navegador no soporta la reproducción de streams HLS.');
+                showPlayerError('Tu navegador no soporta streams HLS.');
             }
         }
 
-        /**
-         * Reproduce un video de YouTube usando la API de IFrame.
-         * @param {string} videoId - El ID del video de YouTube.
-         */
         function playYouTubeVideo(videoId) {
             videoPlayerEl.style.display = 'none';
             youtubePlayerContainerEl.style.display = 'block';
-
             if (youtubePlayer) {
                 youtubePlayer.loadVideoById(videoId);
             } else {
-                // Crear el reproductor si no existe
-                youtubePlayer = new YT.Player('youtube-player-container', {
-                    height: '100%',
-                    width: '100%',
+                youtubePlayer = new YT.Player('youtube-player-iframe', {
                     videoId: videoId,
-                    playerVars: {
-                        'autoplay': 1,
-                        'controls': 1,
-                        'rel': 0
-                    }
+                    playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 }
                 });
             }
         }
 
-        /**
-         * Reproduce un video con URL directa (ej. MP4).
-         * @param {string} url - La URL del video.
-         */
         function playDirectVideoStream(url) {
             youtubePlayerContainerEl.style.display = 'none';
             videoPlayerEl.style.display = 'block';
             videoPlayerEl.src = url;
-            videoPlayerEl.play().catch(e => console.error("Error al reproducir video directo:", e));
+            videoPlayerEl.play().catch(e => console.error("Error video directo:", e));
         }
 
-        /**
-         * Detiene la reproducción actual y vuelve a la lista de canales.
-         * @param {boolean} keepFocus - Si es true, no cambia el estado de foco.
-         */
-        function stopPlayer(keepFocus = false) {
-            // Detener HLS.js
-            if (hls) {
-                hls.destroy();
-                hls = null;
-            }
-            // Detener video HTML5
+        function stopPlayer(keepListHidden = false) {
+            if (hls) hls.destroy();
             videoPlayerEl.pause();
             videoPlayerEl.src = '';
             videoPlayerEl.style.display = 'none';
-
-            // Detener YouTube
-            if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
-                youtubePlayer.stopVideo();
-            }
+            if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') youtubePlayer.stopVideo();
             youtubePlayerContainerEl.style.display = 'none';
-
             playerPlaceholderEl.style.display = 'flex';
             fullscreenBtn.classList.add('opacity-0');
-            
-            if (!keepFocus) {
-                isPlayerActive = false;
-                updateFocus(); // Devolver el foco a la lista
-            }
+            isPlayerActive = false;
         }
 
-        /**
-         * Muestra un mensaje de error en el área del reproductor.
-         * @param {string} message - El mensaje de error a mostrar.
-         */
         function showPlayerError(message) {
-            stopPlayer(true);
-            playerPlaceholderEl.style.display = 'flex';
+            stopPlayer();
             playerPlaceholderEl.innerHTML = `<p class="text-red-400 text-lg">${message}</p>`;
+            showChannelList(); // Mostrar la lista para que el usuario pueda elegir otro canal
         }
 
-        // --- UTILIDADES ---
-        /**
-         * Extrae el ID de un video de una URL de YouTube.
-         * @param {string} url - La URL de YouTube.
-         * @returns {string|null} - El ID del video o null si no se encuentra.
-         */
         function getYouTubeVideoId(url) {
             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
             const match = url.match(regExp);
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        // --- MANEJO DE PANTALLA COMPLETA ---
         fullscreenBtn.addEventListener('click', () => {
             if (!document.fullscreenElement) {
-                playerAreaEl.requestFullscreen().catch(err => {
-                    alert(`Error al intentar entrar en pantalla completa: ${err.message} (${err.name})`);
-                });
+                playerAreaEl.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
             } else {
                 document.exitFullscreen();
             }
         });
     });
 
-    // La API de YouTube llamará a esta función cuando esté lista.
-    // No es necesario ponerla dentro del DOMContentLoaded.
     function onYouTubeIframeAPIReady() {
-        // Esta función se deja vacía a propósito. El reproductor se inicializa
-        // bajo demanda la primera vez que se necesita reproducir un video de YouTube.
         console.log("YouTube IFrame API está lista.");
     }
     </script>
