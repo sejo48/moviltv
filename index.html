@@ -2,1440 +2,406 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Reproductor Multimedia Táctil con Gamepad y Control Remoto</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor de TV para Smart TV</title>
+    
+    <!-- Tailwind CSS para un diseño limpio y moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HLS.js para reproducir streams HLS (.m3u8) en navegadores que no lo soportan nativamente -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
     <style>
-        /* --- Variables --- */
-        :root {
-            --bg-primary: #121212;
-            --bg-secondary: #1e1e1e;
-            --bg-tertiary: #2a2a2a;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-            --accent-color: #1DB954; /* Spotify Green - Buen contraste */
-            --error-color: #CF6679;
-            --success-color: #2ECC71;
-            --favorite-color: #FFD700;
-            --unknown-color: #616161; /* Color para estado desconocido (gris) */
-            --border-color: #333333;
-            --border-radius-lg: 16px;
-            --border-radius-md: 12px;
-            --border-radius-sm: 8px;
-            --spacing-unit: 8px;
-            --header-height: 60px;
-            --footer-height: 70px;
-            --button-min-size: 48px; /* Tamaño mínimo táctil */
-            --gamepad-focus-outline: 3px solid var(--accent-color);
-            --gamepad-focus-shadow: 0 0 10px rgba(29, 185, 84, 0.8);
-        }
-
-        /* --- Estilos Globales --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; /* Evitar highlight azul en tap */ }
-        html, body { height: 100%; overflow: hidden; }
+        /* Estilos personalizados para la aplicación de TV */
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 16px; /* Tamaño base más grande para legibilidad */
-            line-height: 1.5;
-            display: flex;
-            flex-direction: column;
-            -webkit-touch-callout: none; /* Deshabilitar callouts */
-            -webkit-user-select: none;   /* Deshabilitar selección de texto */
-            -moz-user-select: none;    /* Firefox */
-            -ms-user-select: none;     /* Internet Explorer/Edge */
-            user-select: none;         /* Non-prefixed version */
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* --- Layout Principal --- */
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh; /* Ocupar toda la altura */
+        /* Estilo para el elemento de la lista de canales enfocado/seleccionado */
+        .channel-item.focused {
+            background-color: #4a5568; /* bg-gray-700 */
+            color: #ffffff; /* text-white */
+            transform: scale(1.05);
+            transition: all 0.2s ease-in-out;
         }
 
-        /* --- Cabecera --- */
-        .app-header {
-            height: var(--header-height);
-            background-color: var(--bg-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: space-between; /* Cambiado para logo y botón atrás */
-            padding: 0 calc(var(--spacing-unit) * 2);
-            border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
-        }
-        .app-header .back-button {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            font-size: 24px; /* Más grande */
-            cursor: pointer;
-            padding: var(--spacing-unit);
-            display: none; /* Oculto por defecto */
-            min-width: var(--button-min-size);
-            min-height: var(--button-min-size);
-            align-items: center;
-            justify-content: center;
-        }
-         .app-header .back-button.visible {
-           display: flex; /* Mostrar cuando sea necesario */
-         }
-        .app-header .logo img {
-            height: 40px;
-            object-fit: contain;
-            margin: 0 auto; /* Centrar logo si no hay botón atrás */
-        }
-        .app-header .logo.with-back-button img {
-            margin: 0; /* Alinear a la izquierda cuando hay botón atrás */
-        }
-        .header-spacer {
-            width: var(--button-min-size);
-            height: var(--button-min-size);
-            flex-shrink: 0;
-        }
-
-        /* --- Contenido Principal --- */
-        .app-main {
-            flex-grow: 1;
-            overflow-y: auto; /* Scroll principal */
-            overflow-x: hidden;
-            position: relative; /* Para el overlay de carga */
-        }
-        .app-main::-webkit-scrollbar { width: 6px; }
-        .app-main::-webkit-scrollbar-track { background: transparent; }
-        .app-main::-webkit-scrollbar-thumb { background-color: var(--bg-tertiary); border-radius: 3px; }
-
-        /* --- Vistas (Secciones) --- */
-        .view {
+        /* Ocultar la barra de desplazamiento visualmente pero mantener la funcionalidad */
+        .no-scrollbar::-webkit-scrollbar {
             display: none;
-            padding: calc(var(--spacing-unit) * 2);
-            height: 100%;
-            overflow-y: auto;
         }
-        .view.active { display: block; }
-
-        /* --- Vista Menú Principal --- */
-        #mainMenuView {
-            background-image: url('https://d2t1xqejof9utc.cloudfront.net/screenshots/pics/5a713433010f81e5b52534d932f73905/large.png');
-            background-size: 80% auto;
-            background-position: center;
-            background-repeat: no-repeat;
-            position: relative;
-            z-index: 1;
-            background-color: var(--bg-primary);
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
-        #mainMenuView::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: -1;
-            border-radius: inherit;
-        }
-        #mainMenuView .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: calc(var(--spacing-unit) * 2);
-            padding: calc(var(--spacing-unit) * 2) 0;
-            position: relative;
-            z-index: 2;
-        }
-        .menu-button {
-            background-color: rgba(30, 30, 30, 0.8);
-            border: 1px solid rgba(51, 51, 51, 0.8);
-            color: var(--text-primary);
-            padding: calc(var(--spacing-unit) * 3) calc(var(--spacing-unit) * 2);
-            border-radius: var(--border-radius-md);
-            font-size: 1.2em;
-            font-weight: 500;
-            cursor: pointer;
-            text-align: center;
-            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease, outline 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: var(--spacing-unit);
-            min-height: 120px;
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
-        }
-        .menu-button i {
-            font-size: 2em;
-            margin-bottom: var(--spacing-unit);
-        }
-        .menu-button:hover { background-color: rgba(42, 42, 42, 0.9); }
-        .menu-button:active { transform: scale(0.97); }
-
-        /* --- Vista Lista de Contenido --- */
-        .content-list-view h2 {
-            font-size: 1.5em;
-            margin-bottom: calc(var(--spacing-unit) * 2);
-            color: var(--text-primary);
-        }
-        .search-bar {
-            display: flex;
-            margin-bottom: calc(var(--spacing-unit) * 2);
-        }
-        .search-bar input {
-            flex-grow: 1;
-            padding: calc(var(--spacing-unit) * 1.5);
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
-            color: var(--text-primary);
-            font-size: 1em;
-            outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .search-bar input:focus { border-color: var(--accent-color); }
-        .search-bar button {
-            padding: 0 calc(var(--spacing-unit) * 2);
-            background-color: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-left: none;
-            border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
-            color: var(--text-secondary);
-            font-size: 1.2em;
-            cursor: pointer;
-            min-width: var(--button-min-size);
-            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
-        }
-        .search-bar button:hover { background-color: var(--border-color); color: var(--text-primary); }
-
-        /* Grid Común */
-        .item-grid, .channel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: calc(var(--spacing-unit) * 1.5);
-        }
-        .item-card {
-            background-color: var(--bg-secondary);
-            border-radius: var(--border-radius-sm);
-            overflow: hidden;
-            cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease, outline 0.2s ease;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-        .item-card:hover { background-color: var(--bg-tertiary); }
-        .item-card:active { transform: scale(0.97); }
-        .item-card .card-image-container {
-            position: relative;
+        
+        /* Asegurar que el video y el iframe de YouTube ocupen todo el contenedor */
+        #video-player, #youtube-player-container {
             width: 100%;
-            background-color: var(--bg-tertiary);
-        }
-        .item-card.series-card img, .item-card.movie-card img { aspect-ratio: 2 / 3; }
-        .item-card.tv-card img {
-            aspect-ratio: 1 / 1;
-            object-fit: cover;
-            border-radius: 50%;
-            padding: 10%;
-            background-color: var(--bg-tertiary);
-        }
-        .item-card img { width: 100%; height: auto; display: block; }
-        .item-card .text-content {
-            padding: var(--spacing-unit);
-            text-align: center;
-            flex-grow: 1;
-        }
-        .item-card h3 {
-            font-size: 0.9em;
-            font-weight: 500;
-            color: var(--text-primary);
-            line-height: 1.3;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            min-height: calc(1.3em * 2);
-        }
-        .item-card p { display: none; }
-        .item-card.tv-card .status-dot {
-            position: absolute;
-            bottom: calc(10% + 4px);
-            right: calc(10% + 4px);
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: var(--unknown-color);
-            border: 2px solid var(--bg-secondary);
-            transition: background-color 0.3s ease;
-            z-index: 2;
-        }
-        .item-card.tv-card .status-dot.online { background-color: var(--success-color); }
-        .item-card.tv-card .status-dot.offline { background-color: var(--error-color); }
-        .item-card.active { /* Estilo para el canal/contenido actualmente SELECCIONADO o REPRODUCIÉNDOSE */
-            outline: 2px solid var(--accent-color);
-            outline-offset: -2px;
-            background-color: var(--bg-tertiary);
-        }
-
-        /* --- Estilo de Foco para Gamepad/Control Remoto --- */
-        .gamepad-focus {
-            outline: var(--gamepad-focus-outline) !important;
-            outline-offset: 2px;
-            box-shadow: var(--gamepad-focus-shadow) !important;
-        }
-        select.gamepad-focus {
-             border-color: var(--accent-color) !important;
-        }
-
-
-        /* Vista Reproductor */
-        #playerView {
-            height: 100%; display: flex; flex-direction: column; padding: 0; overflow: hidden;
-        }
-        .player-area {
-            flex-grow: 1; background-color: #000; position: relative; display: flex;
-            align-items: center; justify-content: center; border-radius: 0; overflow: hidden;
-        }
-        .player-area video, .player-area iframe { width: 100%; height: 100%; display: block; border: none; }
-        .player-message {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: var(--text-secondary); background-color: rgba(0,0,0,0.7);
-            padding: var(--spacing-unit) calc(var(--spacing-unit) * 2); border-radius: var(--border-radius-sm);
-            text-align: center;
-            z-index: 10; /* Asegurar que esté sobre el video/iframe */
-        }
-        .player-info-controls {
-            padding: calc(var(--spacing-unit) * 1.5); flex-shrink: 0; display: flex;
-            flex-direction: column; gap: var(--spacing-unit); background-color: var(--bg-primary);
-        }
-        .content-info h3 { font-size: 1.2em; font-weight: 500; margin-bottom: calc(var(--spacing-unit) * 0.5); }
-        .content-info p {
-            font-size: 0.9em; color: var(--text-secondary); display: -webkit-box;
-            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;
-        }
-        .specific-controls { display: flex; align-items: center; gap: var(--spacing-unit); flex-wrap: wrap; }
-        .favorite-button {
-            background-color: var(--bg-secondary); border: 1px solid var(--border-color);
-            color: var(--text-secondary); font-size: 1.5em; border-radius: 50%; cursor: pointer;
-            width: var(--button-min-size); height: var(--button-min-size); display: flex;
-            align-items: center; justify-content: center;
-            transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
-        }
-        .favorite-button.is-favorite { color: var(--favorite-color); background-color: var(--bg-tertiary); }
-        .favorite-button:hover { background-color: var(--bg-tertiary); }
-        .favorite-button:active { transform: scale(0.95); }
-        .season-episode-selectors { display: flex; gap: var(--spacing-unit); flex-wrap: wrap; }
-        .season-episode-selectors select {
-            background-color: var(--bg-secondary); border: 1px solid var(--border-color);
-            color: var(--text-primary); padding: calc(var(--spacing-unit) * 1.2) calc(var(--spacing-unit) * 1.5);
-            border-radius: var(--border-radius-sm); font-size: 1em; min-width: 120px;
-            cursor: pointer; outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .season-episode-selectors select:focus { border-color: var(--accent-color); }
-
-        /* Overlays */
-        .loading-overlay, .error-overlay-car {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.8); display: none; align-items: center;
-            justify-content: center; z-index: 1500; padding: calc(var(--spacing-unit) * 3);
-            text-align: center; flex-direction: column;
-        }
-        .loading-overlay.visible, .error-overlay-car.visible { display: flex; }
-        .spinner {
-            border: 4px solid var(--bg-tertiary); border-top: 4px solid var(--accent-color);
-            border-radius: 50%; width: 40px; height: 40px;
-            animation: spin 1s linear infinite; margin-bottom: var(--spacing-unit);
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .error-overlay-car .error-message {
-            color: var(--error-color); font-size: 1.1em; margin-bottom: calc(var(--spacing-unit) * 2);
-        }
-        .error-overlay-car .error-buttons { display: flex; gap: var(--spacing-unit); flex-wrap: wrap; justify-content: center; }
-        .error-overlay-car .error-button {
-            background-color: var(--bg-tertiary); border: 1px solid var(--border-color);
-            color: var(--text-primary); padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
-            border-radius: var(--border-radius-sm); cursor: pointer; font-size: 0.9em;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease, outline 0.2s ease;
-        }
-        .error-overlay-car .error-button:hover { background-color: var(--border-color); }
-
-        /* Responsividad */
-        @media (max-width: 600px) {
-            :root {
-                --header-height: 50px; --footer-height: 60px; --spacing-unit: 6px; --button-min-size: 44px;
-            }
-            body { font-size: 15px; }
-            .app-header .logo img { height: 35px; }
-            #mainMenuView .menu-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--spacing-unit); }
-            .menu-button { padding: calc(var(--spacing-unit) * 2); font-size: 1.1em; min-height: 100px; }
-            .menu-button i { font-size: 1.8em; }
-            .item-grid, .channel-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--spacing-unit); }
-            .item-card h3 { font-size: 0.85em; min-height: calc(1.3em * 2); }
-            .content-info h3 { font-size: 1.1em; }
-            .content-info p { font-size: 0.85em; }
-            .season-episode-selectors select { font-size: 0.9em; min-width: 100px; padding: var(--spacing-unit); }
+            height: 100%;
         }
     </style>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 </head>
-<body>
-    <div class="app-container">
-        <header class="app-header">
-            <button class="back-button" id="backButton" aria-label="Volver" tabindex="-1">
-                <i class="fas fa-arrow-left"></i>
+<body class="bg-gray-900 text-gray-200 overflow-hidden h-screen">
+
+    <!-- Contenedor principal de la aplicación -->
+    <div id="app-container" class="flex h-full">
+
+        <!-- Panel Izquierdo: Lista de Canales -->
+        <nav id="channel-list-container" class="w-1/3 lg:w-1/4 bg-gray-800 p-4 shadow-lg overflow-y-auto no-scrollbar transition-all duration-300">
+            <h1 class="text-2xl font-bold mb-4 text-white sticky top-0 bg-gray-800 py-2">Canales</h1>
+            <div id="loader" class="text-center py-10">
+                <p>Cargando lista de canales...</p>
+            </div>
+            <ul id="channel-list" class="space-y-2">
+                <!-- Los canales se inyectarán aquí dinámicamente con JavaScript -->
+            </ul>
+        </nav>
+
+        <!-- Panel Derecho: Reproductor de Video -->
+        <main id="player-area" class="w-2/3 lg:w-3/4 bg-black flex flex-col items-center justify-center relative">
+            
+            <!-- Contenedor para el reproductor de video HLS -->
+            <video id="video-player" class="hidden" controls></video>
+
+            <!-- Contenedor para el reproductor de YouTube -->
+            <div id="youtube-player-container" class="hidden"></div>
+            
+            <!-- Mensaje de bienvenida o placeholder -->
+            <div id="player-placeholder" class="text-center text-gray-500">
+                <svg class="w-24 h-24 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55a1 1 0 011.45.89v6.22a1 1 0 01-1.45.89L15 15M5 4h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"></path></svg>
+                <h2 class="text-2xl font-semibold">Bienvenido</h2>
+                <p class="mt-2">Usa las flechas de tu control para navegar y 'OK'/'Enter' para seleccionar un canal.</p>
+            </div>
+
+            <!-- Botón de Pantalla Completa -->
+            <button id="fullscreen-btn" class="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-opacity duration-300 opacity-0 hover:opacity-100 focus:opacity-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1v4m0 0h-4m4-4l-5 5M4 16v4m0 0h4m-4-4l5-5m11 1v-4m0 0h-4m4 4l-5-5"></path></svg>
             </button>
-            <div class="logo" id="logoContainer">
-                 <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjtH1eFwNcBk9FvfM8ozeG6zjDtvJR2j2CdfNtfn8rj0JP9PRWR7zeL_ayD_dwmmuqOe8-sTp-TcOGCVsg5yhUNBO_PqRVI9gCMu3B1x2MQ1ZsitAg-1NKxQ70x3H-O9eehSCsQO6DzLPxcB_uZpfGmfziYNcXQ0JylvrGY1PE-sc9nJ76l2c62PG3Kcvs/w683-h203/JORGEDEZ-19-3-2025.png"
-                     alt="Logo JORGEDEZ"
-                     onerror="this.onerror=null; this.style.display='none';">
-            </div>
-            <div class="header-spacer"></div>
-        </header>
-
-        <main class="app-main">
-            <div id="mainMenuView" class="view active">
-                <div class="menu-grid">
-                    <button class="menu-button" data-target-view="tvListView" tabindex="0">
-                        <i class="fas fa-tv"></i>
-                        <span>TV en Vivo</span>
-                    </button>
-                    <button class="menu-button" data-target-view="seriesListView" tabindex="0">
-                        <i class="fas fa-video"></i>
-                        <span>Series</span>
-                    </button>
-                    <button class="menu-button" data-target-view="moviesListView" tabindex="0">
-                        <i class="fas fa-film"></i>
-                        <span>Películas</span>
-                    </button>
-                    <button class="menu-button" data-target-view="favoritesListView" tabindex="0">
-                        <i class="fas fa-star"></i>
-                        <span>Favoritos (TV)</span>
-                    </button>
-                </div>
-            </div>
-
-            <div id="tvListView" class="view content-list-view">
-                <h2>TV en Vivo</h2>
-                <div class="search-bar">
-                    <input type="text" id="tvSearchInput" placeholder="Buscar canal..." aria-label="Buscar canal de TV" tabindex="0">
-                    <button id="tvSearchButton" aria-label="Buscar" tabindex="0"><i class="fas fa-search"></i></button>
-                </div>
-                <div class="channel-grid" id="tvChannelList">
-                    </div>
-            </div>
-
-            <div id="seriesListView" class="view content-list-view">
-                <h2>Series</h2>
-                <div class="item-grid" id="seriesGrid">
-                    </div>
-            </div>
-
-            <div id="moviesListView" class="view content-list-view">
-                <h2>Películas</h2>
-                <div class="item-grid" id="moviesGrid">
-                    </div>
-            </div>
-
-            <div id="favoritesListView" class="view content-list-view">
-                <h2>Favoritos (TV)</h2>
-                 <div class="channel-grid" id="favoritesChannelList">
-                    </div>
-            </div>
-
-            <div id="playerView" class="view">
-                <div class="player-area">
-                    <video id="hlsPlayer" playsinline webkit-playsinline crossorigin="anonymous" controls style="display: none;" tabindex="-1"></video>
-                    <iframe id="drivePlayer" src="about:blank" allow="autoplay; fullscreen" style="display: none;" tabindex="-1"></iframe>
-                    <div class="player-message" id="playerMessageElement">Cargando...</div>
-                </div>
-                <div class="player-info-controls">
-                    <div class="content-info">
-                        <h3 id="playerContentTitle">Título</h3>
-                        <p id="playerContentDescription">Descripción...</p>
-                    </div>
-                    <div class="specific-controls">
-                        <button id="playerFavoriteButton" class="favorite-button" aria-label="Añadir a favoritos" style="display: none;" tabindex="0">
-                            <i class="fas fa-star"></i>
-                        </button>
-                        <div id="playerSeriesSelectors" class="season-episode-selectors" style="display: none;">
-                            <select id="seasonSelector" aria-label="Seleccionar temporada" tabindex="0"></select>
-                            <select id="episodeSelector" aria-label="Seleccionar episodio" tabindex="0"></select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="loading-overlay" id="loadingOverlay">
-                <div class="spinner"></div>
-                <span id="loadingMessage">Cargando...</span>
-            </div>
-
         </main>
-
-         </div>
-
-    <div class="error-overlay-car" id="errorOverlayCar">
-        <div class="error-message" id="errorMessageCar">Error</div>
-        <div class="error-buttons" id="errorButtonsCar">
-            <button class="error-button" id="closeErrorCarButton" tabindex="0">Cerrar</button>
-        </div>
     </div>
 
+    <!-- API de IFrame de YouTube (se carga de forma asíncrona) -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
     <script>
-    // Envolver en try...catch global
-    try {
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM Cargado - Reproductor Táctil con Gamepad y Control Remoto");
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- CONSTANTES Y REFERENCIAS AL DOM ---
+        const M3U_URL = 'https://raw.githubusercontent.com/sejo48/retrom3u/refs/heads/main/listaoficial.m3u';
+        const channelListEl = document.getElementById('channel-list');
+        const loaderEl = document.getElementById('loader');
+        const videoPlayerEl = document.getElementById('video-player');
+        const youtubePlayerContainerEl = document.getElementById('youtube-player-container');
+        const playerPlaceholderEl = document.getElementById('player-placeholder');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const playerAreaEl = document.getElementById('player-area');
 
-            // --- URLs de Datos ---
-            const M3U_URL = 'https://raw.githubusercontent.com/sejo48/chanejorgedez/refs/heads/main/listaoficial.m3u';
-            const SERIES_JSON_URL = "https://raw.githubusercontent.com/sejo48/jorgedrive/refs/heads/main/playlist.json";
-            const MOVIES_JSON_URL = "https://raw.githubusercontent.com/sejo48/peliculas/refs/heads/main/peliculas.json";
+        // --- ESTADO DE LA APLICACIÓN ---
+        let channels = [];
+        let currentChannelIndex = 0;
+        let hls = null;
+        let youtubePlayer = null;
+        let isPlayerActive = false; // Para saber si el foco está en el reproductor o en la lista
 
-            // --- Estado de la Aplicación ---
-            let currentView = 'mainMenuView';
-            let previousView = null;
-            let tvChannels = [];
-            let seriesData = [];
-            let moviesData = [];
-            let tvFavorites = JSON.parse(localStorage.getItem('favoritesTvChannelsCar') || '[]');
-            let tvChannelStatuses = JSON.parse(localStorage.getItem('channelStatusesTvPlayerCar') || '{}');
-            let hlsInstance = null;
-            let currentPlayingTvChannelIndex = null;
-            let currentPlayingSeries = null;
-            let currentPlayingMovieIndex = null;
+        // --- INICIALIZACIÓN ---
+        fetchAndParseM3U();
 
-            // --- Estado de Entradas (Gamepad/Control Remoto) ---
-            let activeGamepadIndex = null;
-            let inputFocusedElement = null; 
-            let focusableElementsInView = [];
-            let gamepadPollInterval = null;
-            const GAMEPAD_BUTTON_ACTION = 0;
-            const GAMEPAD_BUTTON_BACK = 1;
-            const GAMEPAD_AXIS_THRESHOLD = 0.5;
-            const GAMEPAD_POLL_RATE = 100;
-            let lastGamepadButtonStates = [];
-            let lastGamepadAxisStates = [[0,0],[0,0]];
+        // --- PARSER DE M3U ---
+        /**
+         * Descarga y procesa el archivo M3U para extraer la información de los canales.
+         */
+        async function fetchAndParseM3U() {
+            try {
+                // NOTA: El fetching directo puede fallar por CORS en algunos servidores.
+                // Para producción, se recomienda usar un proxy o alojar el M3U en el mismo dominio.
+                const response = await fetch(M3U_URL);
+                if (!response.ok) {
+                    throw new Error(`Error al cargar el archivo M3U: ${response.statusText}`);
+                }
+                const m3uText = await response.text();
+                
+                const lines = m3uText.split('\n').filter(line => line.trim() !== '');
+                let tempChannels = [];
 
-            // --- Referencias a Elementos DOM ---
-            const views = {
-                mainMenuView: document.getElementById('mainMenuView'),
-                tvListView: document.getElementById('tvListView'),
-                seriesListView: document.getElementById('seriesListView'),
-                moviesListView: document.getElementById('moviesListView'),
-                favoritesListView: document.getElementById('favoritesListView'),
-                playerView: document.getElementById('playerView'),
-            };
-            const backButton = document.getElementById('backButton');
-            const logoContainer = document.getElementById('logoContainer');
-            const tvChannelGridElement = document.getElementById('tvChannelList');
-            const tvSearchInput = document.getElementById('tvSearchInput');
-            const tvSearchButton = document.getElementById('tvSearchButton');
-            const seriesGridElement = document.getElementById('seriesGrid');
-            const moviesGridElement = document.getElementById('moviesGrid');
-            const favoritesChannelGridElement = document.getElementById('favoritesChannelList');
-            const hlsPlayerElement = document.getElementById('hlsPlayer');
-            const drivePlayerElement = document.getElementById('drivePlayer');
-            const playerMessageElement = document.getElementById('playerMessageElement');
-            const playerContentTitle = document.getElementById('playerContentTitle');
-            const playerContentDescription = document.getElementById('playerContentDescription');
-            const playerFavoriteButton = document.getElementById('playerFavoriteButton');
-            const playerSeriesSelectors = document.getElementById('playerSeriesSelectors');
-            const seasonSelector = document.getElementById('seasonSelector');
-            const episodeSelector = document.getElementById('episodeSelector');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const loadingMessage = document.getElementById('loadingMessage');
-            const errorOverlayCar = document.getElementById('errorOverlayCar');
-            const errorMessageCar = document.getElementById('errorMessageCar');
-            const errorButtonsCarContainer = document.getElementById('errorButtonsCar');
-            const closeErrorCarButton = document.getElementById('closeErrorCarButton');
+                for (let i = 0; i < lines.length; i++) {
+                    if (lines[i].startsWith('#EXTINF')) {
+                        const infoLine = lines[i];
+                        const urlLine = lines[i + 1];
 
-            if (!Object.values(views).every(v => v) || !backButton || !tvChannelGridElement || !seriesGridElement || !moviesGridElement || !favoritesChannelGridElement || !hlsPlayerElement || !drivePlayerElement || !loadingOverlay || !errorOverlayCar) {
-                console.error("Error crítico: Faltan elementos esenciales de la interfaz.");
-                alert("Error al cargar la interfaz. Faltan elementos.");
+                        if (urlLine && (urlLine.startsWith('http') || urlLine.startsWith('https'))) {
+                            const nameMatch = infoLine.match(/tvg-name="([^"]*)"/);
+                            const logoMatch = infoLine.match(/tvg-logo="([^"]*)"/);
+                            const groupMatch = infoLine.match(/group-title="([^"]*)"/);
+                            
+                            // Si no hay tvg-name, se toma el nombre después de la última coma.
+                            const fallbackName = infoLine.split(',').pop();
+
+                            tempChannels.push({
+                                name: nameMatch ? nameMatch[1] : fallbackName,
+                                logo: logoMatch ? logoMatch[1] : 'https://placehold.co/40x40/1a202c/ffffff?text=TV',
+                                group: groupMatch ? groupMatch[1] : 'General',
+                                url: urlLine.trim()
+                            });
+                        }
+                    }
+                }
+                channels = tempChannels;
+                renderChannelList();
+
+            } catch (error) {
+                console.error('Error al procesar M3U:', error);
+                loaderEl.innerHTML = `<p class="text-red-400">No se pudo cargar la lista de canales. Inténtalo de nuevo más tarde.</p>`;
+            }
+        }
+
+        // --- RENDERIZADO DE LA UI ---
+        /**
+         * Dibuja la lista de canales en el DOM.
+         */
+        function renderChannelList() {
+            if (channels.length === 0) {
+                loaderEl.innerHTML = `<p class="text-yellow-400">La lista de canales está vacía.</p>`;
                 return;
             }
+            
+            loaderEl.style.display = 'none';
+            channelListEl.innerHTML = ''; // Limpiar lista anterior
 
-            // --- Lógica de Navegación ---
-            function navigateTo(viewId, data = null) {
-                console.log(`Navegando a: ${viewId}`);
-                const targetViewElement = views[viewId];
-                if (!targetViewElement) {
-                     console.error(`Vista con ID ${viewId} no encontrada.`);
-                     return;
-                }
-                previousView = currentView;
-                currentView = viewId;
-                Object.values(views).forEach(view => view.classList.remove('active'));
-                targetViewElement.classList.add('active');
-
-                if (viewId === 'mainMenuView') {
-                    backButton.classList.remove('visible');
-                    logoContainer.classList.remove('with-back-button');
-                } else {
-                    backButton.classList.add('visible');
-                    logoContainer.classList.add('with-back-button');
-                }
-
-                if (previousView === 'playerView' && viewId !== 'playerView') stopPlayback();
-
-                const loadAndUpdateFocus = (loaderFn, rendererFn, dataArray) => {
-                    if (!dataArray || dataArray.length === 0) {
-                        loaderFn().finally(updateFocusableElementsForCurrentView);
-                    } else {
-                        if(rendererFn) rendererFn(dataArray);
-                        updateFocusableElementsForCurrentView();
-                    }
-                };
-
-                switch (viewId) {
-                    case 'tvListView':
-                        loadAndUpdateFocus(loadTvChannels, renderTvChannelList, tvChannels);
-                        break;
-                    case 'seriesListView':
-                        loadAndUpdateFocus(loadSeries, renderSeriesList, seriesData);
-                        break;
-                    case 'moviesListView':
-                        loadAndUpdateFocus(loadMovies, renderMoviesList, moviesData);
-                        break;
-                    case 'favoritesListView':
-                        renderFavoritesList(); 
-                        updateFocusableElementsForCurrentView();
-                        break;
-                    case 'playerView':
-                        if (data) setupPlayerView(data); 
-                        break;
-                    default: 
-                        updateFocusableElementsForCurrentView();
-                }
-                document.querySelector('.app-main')?.scrollTo(0, 0);
-            }
-
-            // --- Lógica de Carga y Renderizado ---
-            function showLoading(message = "Cargando...") { 
-                if (loadingOverlay && loadingMessage) {
-                    loadingMessage.textContent = message;
-                    loadingOverlay.classList.add('visible');
-                }
-            }
-            function hideLoading() { 
-                 if (loadingOverlay) {
-                    loadingOverlay.classList.remove('visible');
-                }
-            }
-            function showError(message, buttonsConfig = []) {
-                console.error("Mostrando error:", message);
-                if (errorOverlayCar && errorMessageCar && errorButtonsCarContainer) {
-                    errorMessageCar.textContent = message;
-                    while (errorButtonsCarContainer.firstChild && errorButtonsCarContainer.firstChild !== closeErrorCarButton) {
-                        errorButtonsCarContainer.removeChild(errorButtonsCarContainer.firstChild);
-                    }
-                    buttonsConfig.forEach(config => {
-                        const button = document.createElement('button');
-                        button.className = 'error-button';
-                        button.textContent = config.text;
-                        button.tabIndex = 0;
-                        button.onclick = () => { hideError(); if (config.action) config.action(); };
-                        errorButtonsCarContainer.insertBefore(button, closeErrorCarButton);
-                    });
-                    errorOverlayCar.classList.add('visible');
-                    updateFocusableElementsForCurrentView();
-                } else { alert(`Error: ${message}`); }
-            }
-            function hideError() {
-                if (errorOverlayCar) errorOverlayCar.classList.remove('visible');
-                updateFocusableElementsForCurrentView(previousView || 'mainMenuView');
-            }
-
-            // --- TV ---
-            async function loadTvChannels() {
-                showLoading("Cargando canales de TV...");
-                try {
-                    const response = await fetch(M3U_URL, { cache: "no-store" });
-                    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-                    const m3uText = await response.text();
-                    tvChannels = parseM3U(m3uText);
-                    if (tvChannels.length === 0) showError("No se encontraron canales de TV.", [{ text: "Recargar", action: loadTvChannels }]);
-                    else renderTvChannelList(tvChannels);
-                } catch (error) {
-                    showError(`Error al cargar canales: ${error.message}`, [{ text: "Reintentar", action: loadTvChannels }]);
-                    tvChannels = []; renderTvChannelList([]);
-                } finally { hideLoading(); }
-            }
-            function parseM3U(m3uText) { 
-                const lines = m3uText.split(/[\r\n]+/);
-                const parsedChannels = [];
-                let currentChannelInfo = null;
-                const extinfRegex = /#EXTINF:(-?\d+)(.*)/;
-                const attributeRegex = /(\S+?)=(?:"([^"]*)"|([^ ]*))/g;
-                const titleCommaRegex = /,(?!")(.*)/;
-
-                for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    if (!trimmedLine || trimmedLine === '#EXTM3U') continue;
-
-                    if (trimmedLine.startsWith('#EXTINF:')) {
-                        const match = trimmedLine.match(extinfRegex);
-                        if (match) {
-                            currentChannelInfo = { duration: match[1], attributes: {}, title: '', logo: '', url: '', description: '' };
-                            const restOfLine = match[2] || '';
-                            let attrMatch;
-                            while ((attrMatch = attributeRegex.exec(restOfLine)) !== null) {
-                                currentChannelInfo.attributes[attrMatch[1].toLowerCase()] = attrMatch[2] !== undefined ? attrMatch[2] : attrMatch[3];
-                            }
-                            currentChannelInfo.title = (currentChannelInfo.attributes['tvg-name'] || '').trim();
-                            if (!currentChannelInfo.title) {
-                                const titleMatch = restOfLine.match(titleCommaRegex);
-                                if (titleMatch && titleMatch[1]) {
-                                    currentChannelInfo.title = titleMatch[1].trim();
-                                }
-                            }
-                            if (!currentChannelInfo.title) { currentChannelInfo.title = 'Canal Desconocido'; }
-                            currentChannelInfo.logo = currentChannelInfo.attributes['tvg-logo'] || '';
-                            currentChannelInfo.description = currentChannelInfo.attributes['group-title'] || currentChannelInfo.title || '';
-                        } else {
-                            currentChannelInfo = null;
-                        }
-                    } else if (currentChannelInfo && !trimmedLine.startsWith('#')) {
-                        currentChannelInfo.url = trimmedLine;
-                        if (currentChannelInfo.url) {
-                            parsedChannels.push(currentChannelInfo);
-                        }
-                        currentChannelInfo = null;
-                    }
-                }
-                return parsedChannels;
-            }
-            function renderTvChannelList(channelsToRender, targetElement = tvChannelGridElement) {
-                if (!targetElement) return;
-                targetElement.innerHTML = '';
-                if (!channelsToRender || channelsToRender.length === 0) { 
-                    const msg = document.createElement('p');
-                    msg.textContent = targetElement === favoritesChannelGridElement ? 'No hay favoritos.' : 'No se encontraron canales.';
-                    msg.style.cssText = "color: var(--text-secondary); text-align: center; grid-column: 1 / -1; padding: calc(var(--spacing-unit) * 4) 0;";
-                    targetElement.appendChild(msg);
-                    return;
-                }
-                const sortedChannels = [...channelsToRender].sort((a, b) => { 
-                    const aIsFavorite = tvFavorites.includes(tvChannels.findIndex(ch => ch.url === a.url).toString());
-                    const bIsFavorite = tvFavorites.includes(tvChannels.findIndex(ch => ch.url === b.url).toString());
-                    if (targetElement !== favoritesChannelGridElement) {
-                        if (aIsFavorite && !bIsFavorite) return -1;
-                        if (!aIsFavorite && bIsFavorite) return 1;
-                    }
-                    return (a.title || '').localeCompare(b.title || '');
-                 });
-                const fragment = document.createDocumentFragment();
-                sortedChannels.forEach(channel => {
-                    const originalIndex = tvChannels.findIndex(ch => ch.url === channel.url);
-                    if (originalIndex === -1) return;
-                    const card = document.createElement('div');
-                    card.className = 'item-card tv-card';
-                    card.dataset.channelIndex = originalIndex;
-                    card.tabIndex = 0;
-                    
-                    const imageContainer = document.createElement('div');
-                    imageContainer.className = 'card-image-container';
-                    const img = document.createElement('img');
-                    const placeholderText = encodeURIComponent((channel.title || '?').charAt(0));
-                    img.src = channel.logo || `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`;
-                    img.alt = '';
-                    img.onerror = () => { img.src = `https://placehold.co/100x100/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${channel.title || 'Canal'}`; };
-                    img.loading = 'lazy';
-                    const statusDot = document.createElement('span');
-                    const currentStatus = tvChannelStatuses[originalIndex];
-                    statusDot.className = `status-dot ${currentStatus || ''}`;
-                    statusDot.title = currentStatus === 'online' ? 'En línea' : currentStatus === 'offline' ? 'Fuera de línea' : 'Estado desconocido';
-                    imageContainer.append(img, statusDot);
-                    const textContent = document.createElement('div');
-                    textContent.className = 'text-content';
-                    const title = document.createElement('h3');
-                    title.textContent = channel.title || 'Canal sin título';
-                    textContent.appendChild(title);
-                    card.append(imageContainer, textContent);
-                    card.addEventListener('click', () => navigateTo('playerView', { type: 'tv', index: originalIndex }));
-                    fragment.appendChild(card);
+            channels.forEach((channel, index) => {
+                const li = document.createElement('li');
+                li.id = `channel-${index}`;
+                li.className = 'channel-item p-3 rounded-lg flex items-center space-x-3 cursor-pointer transition-all duration-200';
+                li.innerHTML = `
+                    <img src="${channel.logo}" alt="Logo de ${channel.name}" class="w-10 h-10 rounded-md bg-gray-700 object-cover" onerror="this.onerror=null;this.src='https://placehold.co/40x40/1a202c/ffffff?text=TV';">
+                    <span class="font-semibold truncate">${channel.name}</span>
+                `;
+                li.addEventListener('click', () => {
+                    currentChannelIndex = index;
+                    updateFocus();
+                    playSelectedChannel();
                 });
-                targetElement.appendChild(fragment);
-                if (currentPlayingTvChannelIndex !== null) highlightPlayingChannel(currentPlayingTvChannelIndex, targetElement);
-            }
-            function renderFavoritesList() {
-                const favs = tvChannels.filter((_, idx) => tvFavorites.includes(idx.toString()));
-                renderTvChannelList(favs, favoritesChannelGridElement);
-            }
-            function filterAndRenderTvChannels() {
-                const term = tvSearchInput.value.toLowerCase().trim();
-                const filtered = tvChannels.filter(ch => (ch.title && ch.title.toLowerCase().includes(term)) || (ch.description && ch.description.toLowerCase().includes(term)));
-                renderTvChannelList(filtered, tvChannelGridElement);
-                updateFocusableElementsForCurrentView();
-            }
-            function updateTvChannelStatus(index, status) { 
-                if (index === null || index < 0 || index >= tvChannels.length) return;
-                const previousStatus = tvChannelStatuses[index];
-                if (previousStatus !== status) {
-                    tvChannelStatuses[index] = status;
-                    localStorage.setItem('channelStatusesTvPlayerCar', JSON.stringify(tvChannelStatuses));
-                    updateStatusDotInElement(tvChannelGridElement, index, status);
-                    updateStatusDotInElement(favoritesChannelGridElement, index, status);
-                }
-            }
-            function updateStatusDotInElement(gridElement, index, status) { 
-                if (!gridElement) return;
-                const cardItem = gridElement.querySelector(`.item-card[data-channel-index="${index}"]`);
-                if (cardItem) {
-                    const dot = cardItem.querySelector('.status-dot');
-                    if (dot) {
-                        dot.className = `status-dot ${status || ''}`;
-                        dot.title = status === 'online' ? 'En línea' : status === 'offline' ? 'Fuera de línea' : 'Estado desconocido';
-                    }
-                }
-            }
-            function highlightPlayingChannel(index, gridElement) { 
-                if (!gridElement) return;
-                gridElement.querySelectorAll('.item-card.active').forEach(card => card.classList.remove('active'));
-                if (index !== null) {
-                    const activeItem = gridElement.querySelector(`.item-card[data-channel-index="${index}"]`);
-                    if (activeItem) activeItem.classList.add('active');
-                }
-            }
-
-            // --- Series y Películas ---
-             async function loadSeries() {
-                showLoading("Cargando series...");
-                seriesGridElement.innerHTML = '';
-                try {
-                    const response = await fetch(SERIES_JSON_URL, { cache: "no-store", headers: { 'Accept': 'application/json' } });
-                    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-                    let data = await response.json();
-                    if (!Array.isArray(data)) throw new Error("Formato de datos de series inválido.");
-                    seriesData = data.filter(item => item && item.tituloSerie && !item.tituloSerie.toLowerCase().includes('película') && item.tituloSerie !== 'Encanto');
-                    renderSeriesList(seriesData);
-                     if (seriesData.length === 0) {
-                         seriesGridElement.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">No hay series disponibles.</p>`;
-                     }
-                } catch (error) {
-                    showError(`Error al cargar series: ${error.message}`, [{ text: "Reintentar", action: loadSeries }]);
-                    seriesData = []; renderSeriesList([]);
-                } finally { hideLoading(); }
-            }
-
-            function renderSeriesList(seriesArray) {
-                if (!seriesGridElement) return;
-                seriesGridElement.innerHTML = '';
-                if (!seriesArray || seriesArray.length === 0) {
-                    seriesGridElement.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">No hay series disponibles.</p>`;
-                    return;
-                }
-                const fragment = document.createDocumentFragment();
-                seriesArray.forEach((serie, index) => {
-                    if (!serie || !serie.tituloSerie) return;
-                    const card = document.createElement('div');
-                    card.className = 'item-card series-card';
-                    card.dataset.seriesIndex = index;
-                    card.tabIndex = 0;
-                    const imageContainer = document.createElement('div');
-                    imageContainer.className = 'card-image-container';
-                    const img = document.createElement('img');
-                    const placeholderText = encodeURIComponent((serie.tituloSerie || '?').charAt(0));
-                    img.src = serie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
-                    img.alt = '';
-                    img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${serie.tituloSerie}`; };
-                    img.loading = 'lazy';
-                    imageContainer.appendChild(img);
-                    const textContent = document.createElement('div');
-                    textContent.className = 'text-content';
-                    const title = document.createElement('h3');
-                    title.textContent = serie.tituloSerie;
-                    textContent.appendChild(title);
-                    card.append(imageContainer, textContent);
-                    card.addEventListener('click', () => navigateTo('playerView', { type: 'series', index: index }));
-                    fragment.appendChild(card);
-                });
-                seriesGridElement.appendChild(fragment);
-            }
-
-            async function loadMovies() {
-                showLoading("Cargando películas...");
-                moviesGridElement.innerHTML = '';
-                try {
-                    const response = await fetch(MOVIES_JSON_URL, { cache: "no-store", headers: { 'Accept': 'application/json' } });
-                    if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-                    let data = await response.json();
-                    if (!Array.isArray(data)) throw new Error("Formato de datos de películas inválido.");
-                    moviesData = data;
-                    renderMoviesList(moviesData);
-                     if (moviesData.length === 0) {
-                         moviesGridElement.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">No hay películas disponibles.</p>`;
-                     }
-                } catch (error) {
-                    showError(`Error al cargar películas: ${error.message}`, [{ text: "Reintentar", action: loadMovies }]);
-                    moviesData = []; renderMoviesList([]);
-                } finally { hideLoading(); }
-            }
-
-            function renderMoviesList(moviesArray) {
-                if (!moviesGridElement) return;
-                moviesGridElement.innerHTML = '';
-                if (!moviesArray || moviesArray.length === 0) {
-                     moviesGridElement.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">No hay películas disponibles.</p>`;
-                    return;
-                }
-                const fragment = document.createDocumentFragment();
-                moviesArray.forEach((movie, index) => {
-                    if (!movie || !movie.titulo || !movie.urlDrive) return;
-                    const card = document.createElement('div');
-                    card.className = 'item-card movie-card';
-                    card.dataset.movieIndex = index;
-                    card.tabIndex = 0;
-                    const imageContainer = document.createElement('div');
-                    imageContainer.className = 'card-image-container';
-                    const img = document.createElement('img');
-                    const placeholderText = encodeURIComponent((movie.titulo || '?').charAt(0));
-                    img.src = movie.imagen || `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`;
-                    img.alt = '';
-                    img.onerror = () => { img.src = `https://placehold.co/200x300/383838/aaaaaa?text=${placeholderText}`; img.alt = `Placeholder ${movie.titulo}`; };
-                    img.loading = 'lazy';
-                    imageContainer.appendChild(img);
-                    const textContent = document.createElement('div');
-                    textContent.className = 'text-content';
-                    const title = document.createElement('h3');
-                    title.textContent = movie.titulo;
-                    textContent.appendChild(title);
-                    card.append(imageContainer, textContent);
-                    card.addEventListener('click', () => navigateTo('playerView', { type: 'movie', index: index }));
-                    fragment.appendChild(card);
-                });
-                moviesGridElement.appendChild(fragment);
-            }
-
-            // --- Lógica del Reproductor ---
-            function setupPlayerView(data) { 
-                 console.log("Configurando vista de reproductor para:", data);
-                stopPlayback();
-
-                playerContentTitle.textContent = 'Cargando...';
-                playerContentDescription.textContent = '';
-                playerFavoriteButton.style.display = 'none';
-                playerSeriesSelectors.style.display = 'none';
-                hlsPlayerElement.style.display = 'none';
-                drivePlayerElement.style.display = 'none';
-                showMessageInPlayer("Cargando...");
-
-                if (data.type === 'tv') {
-                    const channelIndex = data.index;
-                    if (channelIndex >= 0 && channelIndex < tvChannels.length) {
-                        const channel = tvChannels[channelIndex];
-                        currentPlayingTvChannelIndex = channelIndex;
-                        playerContentTitle.textContent = channel.title || 'Canal Desconocido';
-                        playerContentDescription.textContent = channel.description || '';
-                        setupTvPlayerControls(channelIndex);
-                        playHlsStream(channel.url, channelIndex);
-                        highlightPlayingChannel(channelIndex, tvChannelGridElement);
-                        highlightPlayingChannel(channelIndex, favoritesChannelGridElement);
-                    } else { showError("Error: Índice de canal de TV inválido."); navigateTo(previousView || 'mainMenuView');}
-                } else if (data.type === 'series') {
-                    const seriesIndex = data.index;
-                    if (seriesIndex >= 0 && seriesIndex < seriesData.length) {
-                        const serie = seriesData[seriesIndex];
-                        currentPlayingSeries = { seriesIndex: seriesIndex, seasonNumber: null, episodeIndex: null };
-                        playerContentTitle.textContent = serie.tituloSerie || 'Serie Desconocida';
-                        playerContentDescription.textContent = serie.descripcion || '';
-                        setupSeriesPlayerControls(serie);
-                        showMessageInPlayer("Selecciona temporada y episodio");
-                    } else { showError("Error: Índice de serie inválido."); navigateTo(previousView || 'mainMenuView'); }
-                } else if (data.type === 'movie') {
-                    const movieIndex = data.index;
-                    if (movieIndex >= 0 && movieIndex < moviesData.length) {
-                        const movie = moviesData[movieIndex];
-                        currentPlayingMovieIndex = movieIndex;
-                        playerContentTitle.textContent = movie.titulo || 'Película Desconocida';
-                        playerContentDescription.textContent = movie.descripcion || '';
-                        playDriveStream(movie.urlDrive);
-                    } else { showError("Error: Índice de película inválido."); navigateTo(previousView || 'mainMenuView');}
-                } else {
-                    console.error("Tipo de contenido desconocido para el reproductor:", data.type);
-                    showError("Error: No se puede reproducir este tipo de contenido.");
-                    navigateTo(previousView || 'mainMenuView');
-                }
-                updateFocusableElementsForCurrentView();
-            }
-            function setupTvPlayerControls(channelIndex) { 
-                playerFavoriteButton.style.display = 'flex';
-                playerSeriesSelectors.style.display = 'none';
-                const isFav = tvFavorites.includes(channelIndex.toString());
-                playerFavoriteButton.classList.toggle('is-favorite', isFav);
-                playerFavoriteButton.setAttribute('aria-label', isFav ? 'Quitar de favoritos' : 'Añadir a favoritos');
-                playerFavoriteButton.onclick = () => toggleTvFavorite(channelIndex);
-            }
-            function setupSeriesPlayerControls(serie) { 
-                playerFavoriteButton.style.display = 'none';
-                playerSeriesSelectors.style.display = 'flex';
-                seasonSelector.innerHTML = '<option value="">Temporada</option>';
-                episodeSelector.innerHTML = '<option value="">Episodio</option>';
-                episodeSelector.disabled = true;
-
-                if (!serie.temporadas || serie.temporadas.length === 0) {
-                    seasonSelector.innerHTML = '<option value="">No hay temporadas</option>';
-                    seasonSelector.disabled = true; return;
-                }
-                serie.temporadas.sort((a, b) => (a.numeroTemporada || 0) - (b.numeroTemporada || 0));
-                serie.temporadas.forEach(temp => {
-                    if (typeof temp.numeroTemporada !== 'undefined') {
-                        const option = document.createElement('option');
-                        option.value = temp.numeroTemporada;
-                        option.textContent = `Temporada ${temp.numeroTemporada}`;
-                        seasonSelector.appendChild(option);
-                    }
-                });
-                seasonSelector.disabled = false;
-                seasonSelector.onchange = () => { /* ... (lógica existente) ... */ };
-                episodeSelector.onchange = () => { /* ... (lógica existente) ... */ };
-            }
-
-            function playHlsStream(url, channelIndex) {
-                console.log(`Intentando reproducir HLS: ${url} para el canal índice: ${channelIndex}`);
-                showMessageInPlayer("Conectando al canal..."); // Mensaje inicial
-                hlsPlayerElement.removeEventListener('playing', handleHlsPlaying); // Limpiar listener previo
-                hlsPlayerElement.removeEventListener('error', handleVideoElementError); // Limpiar listener previo
-
-                if (Hls.isSupported()) {
-                    console.log("HLS.js es soportado. Creando instancia...");
-                    if (hlsInstance) {
-                        console.log("Destruyendo instancia HLS previa.");
-                        hlsInstance.destroy();
-                    }
-                    hlsInstance = new Hls({
-                        // Configuración de HLS.js (opcional, pero útil para debugging)
-                        // debug: true, // Descomentar para logs detallados de HLS.js
-                        // enableWorker: true, // Puede mejorar rendimiento
-                        // lowLatencyMode: true, // Para streams de baja latencia
-                        // fragLoadingTimeOut: 20000, // Timeout para cargar fragmentos (ms)
-                        // manifestLoadingTimeOut: 10000, // Timeout para cargar manifiesto (ms)
-                        // levelLoadingTimeOut: 10000, // Timeout para cargar nivel (ms)
-                    });
-                    console.log("Adjuntando media a HLS.js y cargando fuente.");
-                    hlsInstance.attachMedia(hlsPlayerElement);
-                    hlsInstance.on(Hls.Events.MEDIA_ATTACHED, () => {
-                        console.log('HLS.js: Media attached.');
-                        hlsInstance.loadSource(url);
-                    });
-
-                    hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-                        console.log(`HLS.js: Manifiesto parseado. Niveles disponibles: ${data.levels.length}`);
-                        hideMessageInPlayer(); // Ocultar "Conectando..."
-                        hlsPlayerElement.play().catch(e => {
-                            console.error("Error al iniciar play() en HLS.js:", e);
-                            showMessageInPlayer(`Error al reproducir: ${e.message}`);
-                            updateTvChannelStatus(channelIndex, 'offline');
-                        });
-                    });
-
-                    hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-                        console.error('Error de HLS.js:', data);
-                        if (data.fatal) {
-                            let errorMsg = `Error HLS (${data.type} - ${data.details}).`;
-                            showMessageInPlayer(`Error al cargar canal: ${data.details}`);
-                            showError(errorMsg, [
-                                { text: "Reintentar", action: () => playHlsStream(url, channelIndex) },
-                                { text: "Ver Lista", action: () => navigateTo('tvListView') }
-                            ]);
-                            updateTvChannelStatus(channelIndex, 'offline');
-                            // No llamar a stopPlayback() aquí para permitir reintentos desde el popup
-                        } else {
-                            // Errores no fatales podrían ser reintentados automáticamente por HLS.js
-                            // o podrían indicar problemas de red temporales.
-                             console.warn("Error no fatal de HLS.js:", data.details);
-                        }
-                    });
-                    hlsPlayerElement.style.display = 'block';
-                    drivePlayerElement.style.display = 'none';
-                } else if (hlsPlayerElement.canPlayType('application/vnd.apple.mpegurl')) {
-                    console.log("Usando reproducción HLS nativa (ej. Safari/iOS).");
-                    hlsPlayerElement.src = url;
-                    hlsPlayerElement.style.display = 'block';
-                    drivePlayerElement.style.display = 'none';
-                    hideMessageInPlayer();
-                    hlsPlayerElement.play().catch(e => {
-                        console.error("Error al iniciar play() en HLS nativo:", e);
-                        showMessageInPlayer(`Error al reproducir (nativo): ${e.message}`);
-                        updateTvChannelStatus(channelIndex, 'offline');
-                    });
-                } else {
-                    console.error("HLS no es soportado por este navegador.");
-                    showMessageInPlayer("HLS no soportado.");
-                    showError("Su navegador no soporta la reproducción HLS necesaria para este canal.");
-                    updateTvChannelStatus(channelIndex, 'offline');
-                    return;
-                }
-                hlsPlayerElement.addEventListener('playing', handleHlsPlaying, { once: true });
-                hlsPlayerElement.addEventListener('error', handleVideoElementError);
-            }
-
-            function handleHlsPlaying() {
-                console.log("Evento 'playing' del video HLS disparado.");
-                hideMessageInPlayer(); // Asegurarse de que el mensaje de carga se oculte
-                if (currentPlayingTvChannelIndex !== null) {
-                    updateTvChannelStatus(currentPlayingTvChannelIndex, 'online');
-                }
-            }
-            function handleVideoElementError(e) {
-                console.error("Error en el elemento <video>:", e, hlsPlayerElement.error);
-                const channelIndex = currentPlayingTvChannelIndex;
-                let errorDetail = "desconocido";
-                if (hlsPlayerElement.error) {
-                    switch (hlsPlayerElement.error.code) {
-                        case MediaError.MEDIA_ERR_ABORTED: errorDetail = "Reproducción abortada."; break;
-                        case MediaError.MEDIA_ERR_NETWORK: errorDetail = "Error de red."; break;
-                        case MediaError.MEDIA_ERR_DECODE: errorDetail = "Error de decodificación."; break;
-                        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED: errorDetail = "Fuente no soportada."; break;
-                        default: errorDetail = `Código ${hlsPlayerElement.error.code}`;
-                    }
-                }
-                showMessageInPlayer(`Error de video: ${errorDetail}`);
-                showError(`Error al cargar el video del canal (${errorDetail}).`, [
-                    { text: "Ver Lista", action: () => navigateTo('tvListView') }
-                ]);
-                if (channelIndex !== null) {
-                    updateTvChannelStatus(channelIndex, 'offline');
-                }
-                // No llamar a stopPlayback() aquí para que el mensaje de error en el player sea visible.
-            }
-
-            function playDriveStream(url) { 
-                let cleanUrl = url || '';
-                if (cleanUrl.includes('/file/d/')) {
-                    const match = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                    if (match && match[1]) cleanUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
-                    else cleanUrl = '';
-                } else if (cleanUrl.includes('/preview')) {
-                   cleanUrl = cleanUrl.substring(0, cleanUrl.indexOf('/preview') + '/preview'.length);
-                } else { cleanUrl = ''; }
-
-                if (!cleanUrl) {
-                    showMessageInPlayer("Error: URL de Drive inválida");
-                    showError("URL de Google Drive inválida."); return;
-                }
-                console.log(`Reproduciendo Drive: ${cleanUrl}`);
-                drivePlayerElement.src = cleanUrl;
-                drivePlayerElement.style.display = 'block';
-                hlsPlayerElement.style.display = 'none';
-                hideMessageInPlayer();
-            }
-            function stopPlayback() {
-                console.log("Deteniendo reproducción.");
-                if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-                if (hlsPlayerElement) { 
-                    hlsPlayerElement.pause(); 
-                    hlsPlayerElement.removeAttribute('src'); 
-                    hlsPlayerElement.load(); // Resetea el player
-                    hlsPlayerElement.style.display = 'none'; 
-                    hlsPlayerElement.removeEventListener('playing', handleHlsPlaying);
-                    hlsPlayerElement.removeEventListener('error', handleVideoElementError);
-                }
-                if (drivePlayerElement) { drivePlayerElement.src = 'about:blank'; drivePlayerElement.style.display = 'none'; }
-                
-                // Limpiar foco si estaba en un elemento del reproductor que ya no es relevante
-                if (inputFocusedElement && (inputFocusedElement === hlsPlayerElement || inputFocusedElement === drivePlayerElement)) {
-                    setInputFocus(null); 
-                }
-                // No limpiar playerMessageElement aquí, se hace al inicio de setupPlayerView o playHlsStream/playDriveStream
-                
-                currentPlayingTvChannelIndex = null; currentPlayingSeries = null; currentPlayingMovieIndex = null;
-                highlightPlayingChannel(null, tvChannelGridElement); 
-                highlightPlayingChannel(null, favoritesChannelGridElement);
-            }
-            function showMessageInPlayer(message = "") { 
-                if (playerMessageElement) {
-                    playerMessageElement.textContent = message;
-                    playerMessageElement.style.display = message ? 'block' : 'none';
-                }
-            }
-            function hideMessageInPlayer() { 
-                if (playerMessageElement) {
-                    playerMessageElement.style.display = 'none';
-                }
-            }
-
-            // --- Favoritos TV ---
-            function toggleTvFavorite(channelIndex) { 
-                if (channelIndex === null || channelIndex < 0 || channelIndex >= tvChannels.length) return;
-                const indexString = channelIndex.toString();
-                const favIndex = tvFavorites.indexOf(indexString);
-                if (favIndex > -1) tvFavorites.splice(favIndex, 1);
-                else tvFavorites.push(indexString);
-                localStorage.setItem('favoritesTvChannelsCar', JSON.stringify(tvFavorites));
-                updateFavoriteButtonUI(channelIndex);
-                if (views.favoritesListView.classList.contains('active')) renderFavoritesList();
-            }
-            function updateFavoriteButtonUI(channelIndex) { 
-                if (currentView === 'playerView' && currentPlayingTvChannelIndex === channelIndex) {
-                    const isFav = tvFavorites.includes(channelIndex.toString());
-                    playerFavoriteButton.classList.toggle('is-favorite', isFav);
-                    playerFavoriteButton.setAttribute('aria-label', isFav ? 'Quitar de favoritos' : 'Añadir a favoritos');
-                }
-            }
-
-            // --- Lógica de Entradas (Gamepad y Control Remoto/Teclado) ---
-            function initInputControls() {
-                // Gamepad
-                window.addEventListener('gamepadconnected', (event) => {
-                    console.log('Gamepad conectado:', event.gamepad.id);
-                    if (activeGamepadIndex === null) activeGamepadIndex = event.gamepad.index;
-                    if (!gamepadPollInterval) {
-                        lastGamepadButtonStates = Array(event.gamepad.buttons.length).fill(false);
-                        lastGamepadAxisStates = event.gamepad.axes.map(() => 0);
-                        gamepadPollInterval = setInterval(pollGamepad, GAMEPAD_POLL_RATE);
-                    }
-                    updateFocusableElementsForCurrentView();
-                });
-                window.addEventListener('gamepaddisconnected', (event) => {
-                    console.log('Gamepad desconectado:', event.gamepad.id);
-                    if (activeGamepadIndex === event.gamepad.index) {
-                        activeGamepadIndex = null; clearInterval(gamepadPollInterval); gamepadPollInterval = null; setInputFocus(null);
-                    }
-                });
-                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-                for (let i = 0; i < gamepads.length; i++) {
-                    if (gamepads[i]) {
-                        activeGamepadIndex = gamepads[i].index;
-                        lastGamepadButtonStates = Array(gamepads[i].buttons.length).fill(false);
-                        lastGamepadAxisStates = gamepads[i].axes.map(() => 0);
-                        if (!gamepadPollInterval) gamepadPollInterval = setInterval(pollGamepad, GAMEPAD_POLL_RATE);
-                        break;
-                    }
-                }
-                // Teclado / Control Remoto
-                document.addEventListener('keydown', handleRemoteKeyPress);
-            }
-
-            function pollGamepad() {
-                if (activeGamepadIndex === null) return;
-                const gp = navigator.getGamepads()[activeGamepadIndex];
-                if (!gp) return;
-
-                gp.buttons.forEach((button, index) => {
-                    if (button.pressed && !lastGamepadButtonStates[index]) handleGamepadButtonPress(index);
-                    lastGamepadButtonStates[index] = button.pressed;
-                });
-
-                const axisX = gp.axes[0]; const axisY = gp.axes[1];
-                if (axisX > GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[0] <= GAMEPAD_AXIS_THRESHOLD) moveInputFocus('right');
-                else if (axisX < -GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[0] >= -GAMEPAD_AXIS_THRESHOLD) moveInputFocus('left');
-                if (axisY > GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[1] <= GAMEPAD_AXIS_THRESHOLD) moveInputFocus('down');
-                else if (axisY < -GAMEPAD_AXIS_THRESHOLD && lastGamepadAxisStates[1] >= -GAMEPAD_AXIS_THRESHOLD) moveInputFocus('up');
-                lastGamepadAxisStates[0] = axisX; lastGamepadAxisStates[1] = axisY;
-            }
-
-            function handleGamepadButtonPress(buttonIndex) {
-                // console.log("Gamepad button pressed:", buttonIndex); 
-                if (loadingOverlay.classList.contains('visible')) return;
-                if (errorOverlayCar.classList.contains('visible')) {
-                    if (inputFocusedElement && errorOverlayCar.contains(inputFocusedElement) && buttonIndex === GAMEPAD_BUTTON_ACTION) {
-                        inputFocusedElement.click();
-                    }
-                    return;
-                }
-                switch (buttonIndex) {
-                    case GAMEPAD_BUTTON_ACTION:
-                        if (inputFocusedElement) {
-                            if (inputFocusedElement.tagName === 'INPUT' && inputFocusedElement.type === 'text') inputFocusedElement.focus();
-                            else inputFocusedElement.click();
-                        }
-                        break;
-                    case GAMEPAD_BUTTON_BACK:
-                        if (backButton.classList.contains('visible')) backButton.click();
-                        break;
-                    case 12: moveInputFocus('up'); break;
-                    case 13: moveInputFocus('down'); break;
-                    case 14: moveInputFocus('left'); break;
-                    case 15: moveInputFocus('right'); break;
-                }
-            }
-
-            function handleRemoteKeyPress(event) {
-                // console.log("Tecla presionada (código):", event.keyCode, "Tecla:", event.key); 
-                if (inputFocusedElement && [37, 38, 39, 40].includes(event.keyCode)) {
-                    event.preventDefault(); 
-                }
-
-                if (loadingOverlay.classList.contains('visible')) return;
-
-                if (errorOverlayCar.classList.contains('visible')) {
-                    if (inputFocusedElement && errorOverlayCar.contains(inputFocusedElement) && event.keyCode === 13) { 
-                        inputFocusedElement.click();
-                    } else if ([8, 461, 4, 27].includes(event.keyCode)) { 
-                         closeErrorCarButton.click(); 
-                    }
-                    return;
-                }
-
-                switch (event.keyCode) {
-                    case 38: moveInputFocus('up'); break;
-                    case 40: moveInputFocus('down'); break;
-                    case 37: moveInputFocus('left'); break;
-                    case 39: moveInputFocus('right'); break;
-                    case 13: 
-                        if (inputFocusedElement) {
-                            if (inputFocusedElement.tagName === 'INPUT' && inputFocusedElement.type === 'text') inputFocusedElement.focus();
-                            else inputFocusedElement.click();
-                        }
-                        break;
-                    case 8: case 461: case 4:  case 27:  
-                        if (backButton.classList.contains('visible')) backButton.click();
-                        break;
-                    case 179: case 32:  
-                        if (currentView === 'playerView' && hlsPlayerElement.style.display === 'block') {
-                            if (hlsPlayerElement.paused) hlsPlayerElement.play().catch(e => console.error("Error HLS play:", e));
-                            else hlsPlayerElement.pause();
-                        }
-                        break;
-                    case 178: 
-                        if (currentView === 'playerView') stopPlayback();
-                        break;
-                    case 227: 
-                         if (currentView === 'playerView' && hlsPlayerElement.style.display === 'block' && hlsPlayerElement.duration) {
-                            hlsPlayerElement.currentTime = Math.max(0, hlsPlayerElement.currentTime - 10);
-                        }
-                        break;
-                    case 228: 
-                        if (currentView === 'playerView' && hlsPlayerElement.style.display === 'block' && hlsPlayerElement.duration) {
-                            hlsPlayerElement.currentTime = Math.min(hlsPlayerElement.duration, hlsPlayerElement.currentTime + 10);
-                        }
-                        break;
-                }
-            }
-
-            function updateFocusableElementsForCurrentView(viewIdToUpdate = currentView) {
-                if (inputFocusedElement) inputFocusedElement.classList.remove('gamepad-focus');
-                inputFocusedElement = null;
-                focusableElementsInView = [];
-                let currentViewElement = errorOverlayCar.classList.contains('visible') ? errorOverlayCar :
-                                       loadingOverlay.classList.contains('visible') ? null : views[viewIdToUpdate];
-
-                if (currentViewElement) {
-                    const potentialElements = currentViewElement.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-                    potentialElements.forEach(el => {
-                        if (el.offsetParent !== null && !el.disabled) focusableElementsInView.push(el);
-                    });
-                }
-
-                if (focusableElementsInView.length > 0) {
-                    let elementToFocus = focusableElementsInView[0];
-                    if ((viewIdToUpdate === 'tvListView' || viewIdToUpdate === 'favoritesListView') && currentPlayingTvChannelIndex !== null) {
-                        const activeCard = currentViewElement?.querySelector(`.item-card[data-channel-index="${currentPlayingTvChannelIndex}"]`);
-                        if (activeCard && focusableElementsInView.includes(activeCard)) elementToFocus = activeCard;
-                    }
-                    setInputFocus(elementToFocus);
-                }
-            }
-
-            function setInputFocus(element) {
-                if (inputFocusedElement) inputFocusedElement.classList.remove('gamepad-focus');
-                inputFocusedElement = element;
-                if (inputFocusedElement) {
-                    inputFocusedElement.classList.add('gamepad-focus');
-                    inputFocusedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-                }
-            }
-
-            function moveInputFocus(direction) {
-                if (!inputFocusedElement || focusableElementsInView.length === 0) {
-                    if (focusableElementsInView.length > 0) setInputFocus(focusableElementsInView[0]);
-                    return;
-                }
-                let currentIndex = focusableElementsInView.indexOf(inputFocusedElement);
-                if (currentIndex === -1) { setInputFocus(focusableElementsInView[0]); return; }
-
-                let nextIndex = currentIndex;
-                const currentElement = focusableElementsInView[currentIndex];
-                const parentGrid = currentElement.closest('.item-grid, .channel-grid, .menu-grid, .error-buttons, .specific-controls'); 
-
-                if (parentGrid) {
-                    const items = Array.from(parentGrid.querySelectorAll('[tabindex="0"]:not([disabled]), select:not([disabled])'))
-                                     .filter(el => el.offsetParent !== null);
-                    if (!items.length) return;
-                    currentIndex = items.indexOf(currentElement);
-                    if (currentIndex === -1) { setInputFocus(items[0]); return; }
-
-                    let numCols = 0;
-                    if (items.length > 0) { 
-                        const parentRect = parentGrid.getBoundingClientRect();
-                        const itemRect = items[0].getBoundingClientRect();
-                        if (itemRect.width > 0) {
-                            numCols = Math.max(1, Math.floor(parentRect.width / itemRect.width));
-                            let firstRowItems = 0;
-                            let firstRowTop = items[0].getBoundingClientRect().top;
-                            for(let item of items){
-                                if(item.getBoundingClientRect().top <= firstRowTop + itemRect.height * 0.5) { 
-                                    firstRowItems++;
-                                } else { break; }
-                            }
-                            numCols = Math.max(1, firstRowItems > 0 ? firstRowItems : numCols);
-                        } else { numCols = 1; }
-                    }
-                     if (parentGrid.classList.contains('specific-controls') || parentGrid.classList.contains('error-buttons')) { 
-                        numCols = items.length; 
-                    }
-                    switch (direction) {
-                        case 'left':
-                            nextIndex = (currentIndex > 0 && currentIndex % numCols !== 0) ? currentIndex - 1 : currentIndex;
-                            break;
-                        case 'right':
-                            nextIndex = (currentIndex < items.length - 1 && (currentIndex + 1) % numCols !== 0) ? currentIndex + 1 : currentIndex;
-                            break;
-                        case 'up':
-                            nextIndex = (currentIndex - numCols >= 0) ? currentIndex - numCols : currentIndex;
-                            break;
-                        case 'down':
-                            nextIndex = (currentIndex + numCols < items.length) ? currentIndex + numCols : currentIndex;
-                            if (nextIndex === currentIndex && currentIndex + numCols >= items.length && currentIndex < items.length -1) {
-                                nextIndex = items.length -1;
-                            }
-                            break;
-                    }
-                    if (nextIndex >= 0 && nextIndex < items.length) setInputFocus(items[nextIndex]);
-
-                } else { 
-                    switch (direction) {
-                        case 'up': case 'left':
-                            nextIndex = (currentIndex - 1 + focusableElementsInView.length) % focusableElementsInView.length;
-                            break;
-                        case 'down': case 'right':
-                            nextIndex = (currentIndex + 1) % focusableElementsInView.length;
-                            break;
-                    }
-                     if (nextIndex >= 0 && nextIndex < focusableElementsInView.length) setInputFocus(focusableElementsInView[nextIndex]);
-                }
-            }
-
-            // --- Event Listeners ---
-            backButton.addEventListener('click', () => {
-                if (currentView === 'playerView' && previousView) navigateTo(previousView);
-                else if (currentView !== 'mainMenuView') navigateTo('mainMenuView');
+                channelListEl.appendChild(li);
             });
-            document.querySelectorAll('#mainMenuView .menu-button').forEach(button => {
-                button.addEventListener('click', () => { if (button.dataset.targetView) navigateTo(button.dataset.targetView); });
-            });
-            if (tvSearchButton && tvSearchInput) {
-                 tvSearchButton.addEventListener('click', filterAndRenderTvChannels);
-                 tvSearchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') { filterAndRenderTvChannels(); tvSearchInput.blur(); }});
-                 tvSearchInput.addEventListener('input', () => { if(tvSearchInput.value === '') filterAndRenderTvChannels(); });
-             }
-            closeErrorCarButton.addEventListener('click', hideError);
 
-            // --- Inicialización ---
-            function initializeApp() {
-                console.log("Inicializando aplicación...");
-                initInputControls();
-                navigateTo('mainMenuView');
+            updateFocus(); // Poner foco en el primer canal
+        }
+
+        /**
+         * Actualiza el estilo del elemento enfocado en la lista de canales.
+         */
+        function updateFocus() {
+            document.querySelectorAll('.channel-item').forEach((item, index) => {
+                if (index === currentChannelIndex) {
+                    item.classList.add('focused');
+                    // Asegurarse de que el elemento enfocado esté visible en la pantalla
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    item.classList.remove('focused');
+                }
+            });
+        }
+
+        // --- MANEJO DEL CONTROL REMOTO (TECLADO) ---
+        document.addEventListener('keydown', (e) => {
+            // Prevenir el comportamiento por defecto de las flechas (scroll)
+            if (['ArrowUp', 'ArrowDown', 'Enter', 'Backspace', 'Escape'].includes(e.key)) {
+                e.preventDefault();
             }
-            initializeApp();
-        }); // Fin DOMContentLoaded
-    } catch (globalError) {
-        console.error("Error global no capturado:", globalError);
-        document.body.innerHTML = `<div style="color: white; background-color: #121212; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: sans-serif;"><h1>Oops! Algo salió muy mal.</h1><p>Detalles: ${globalError.message}</p></div>`;
+
+            if (isPlayerActive) {
+                // Si el reproductor está activo, la tecla 'Back' lo detiene
+                if (e.key === 'Backspace' || e.key === 'Escape') {
+                    stopPlayer();
+                }
+                return; // Ignorar otras teclas mientras el reproductor está activo
+            }
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (currentChannelIndex > 0) {
+                        currentChannelIndex--;
+                        updateFocus();
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (currentChannelIndex < channels.length - 1) {
+                        currentChannelIndex++;
+                        updateFocus();
+                    }
+                    break;
+                case 'Enter':
+                    playSelectedChannel();
+                    break;
+            }
+        });
+
+        // --- LÓGICA DEL REPRODUCTOR ---
+        /**
+         * Inicia la reproducción del canal actualmente seleccionado.
+         */
+        function playSelectedChannel() {
+            if (channels.length === 0) return;
+
+            stopPlayer(true); // Detener cualquier reproducción anterior sin cambiar el estado de foco
+
+            const channel = channels[currentChannelIndex];
+            const url = channel.url;
+
+            playerPlaceholderEl.style.display = 'none';
+            fullscreenBtn.classList.remove('opacity-0');
+            isPlayerActive = true;
+
+            const youtubeId = getYouTubeVideoId(url);
+
+            if (youtubeId) {
+                playYouTubeVideo(youtubeId);
+            } else if (url.includes('.m3u8')) {
+                playHLSStream(url);
+            } else {
+                // Para otros formatos de video directos (mp4, etc.)
+                playDirectVideoStream(url);
+            }
+        }
+        
+        /**
+         * Reproduce un stream de video HLS (.m3u8).
+         * @param {string} url - La URL del stream HLS.
+         */
+        function playHLSStream(url) {
+            youtubePlayerContainerEl.style.display = 'none';
+            videoPlayerEl.style.display = 'block';
+
+            if (Hls.isSupported()) {
+                if (hls) hls.destroy();
+                hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(videoPlayerEl);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    videoPlayerEl.play().catch(e => console.error("Error al reproducir HLS:", e));
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        console.error('Error fatal de HLS:', data);
+                        showPlayerError('No se pudo reproducir este canal.');
+                    }
+                });
+            } else if (videoPlayerEl.canPlayType('application/vnd.apple.mpegurl')) {
+                // Soporte nativo en Safari/iOS
+                videoPlayerEl.src = url;
+                videoPlayerEl.play().catch(e => console.error("Error al reproducir HLS nativo:", e));
+            } else {
+                showPlayerError('Tu navegador no soporta la reproducción de streams HLS.');
+            }
+        }
+
+        /**
+         * Reproduce un video de YouTube usando la API de IFrame.
+         * @param {string} videoId - El ID del video de YouTube.
+         */
+        function playYouTubeVideo(videoId) {
+            videoPlayerEl.style.display = 'none';
+            youtubePlayerContainerEl.style.display = 'block';
+
+            if (youtubePlayer) {
+                youtubePlayer.loadVideoById(videoId);
+            } else {
+                // Crear el reproductor si no existe
+                youtubePlayer = new YT.Player('youtube-player-container', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: {
+                        'autoplay': 1,
+                        'controls': 1,
+                        'rel': 0
+                    }
+                });
+            }
+        }
+
+        /**
+         * Reproduce un video con URL directa (ej. MP4).
+         * @param {string} url - La URL del video.
+         */
+        function playDirectVideoStream(url) {
+            youtubePlayerContainerEl.style.display = 'none';
+            videoPlayerEl.style.display = 'block';
+            videoPlayerEl.src = url;
+            videoPlayerEl.play().catch(e => console.error("Error al reproducir video directo:", e));
+        }
+
+        /**
+         * Detiene la reproducción actual y vuelve a la lista de canales.
+         * @param {boolean} keepFocus - Si es true, no cambia el estado de foco.
+         */
+        function stopPlayer(keepFocus = false) {
+            // Detener HLS.js
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            // Detener video HTML5
+            videoPlayerEl.pause();
+            videoPlayerEl.src = '';
+            videoPlayerEl.style.display = 'none';
+
+            // Detener YouTube
+            if (youtubePlayer && typeof youtubePlayer.stopVideo === 'function') {
+                youtubePlayer.stopVideo();
+            }
+            youtubePlayerContainerEl.style.display = 'none';
+
+            playerPlaceholderEl.style.display = 'flex';
+            fullscreenBtn.classList.add('opacity-0');
+            
+            if (!keepFocus) {
+                isPlayerActive = false;
+                updateFocus(); // Devolver el foco a la lista
+            }
+        }
+
+        /**
+         * Muestra un mensaje de error en el área del reproductor.
+         * @param {string} message - El mensaje de error a mostrar.
+         */
+        function showPlayerError(message) {
+            stopPlayer(true);
+            playerPlaceholderEl.style.display = 'flex';
+            playerPlaceholderEl.innerHTML = `<p class="text-red-400 text-lg">${message}</p>`;
+        }
+
+        // --- UTILIDADES ---
+        /**
+         * Extrae el ID de un video de una URL de YouTube.
+         * @param {string} url - La URL de YouTube.
+         * @returns {string|null} - El ID del video o null si no se encuentra.
+         */
+        function getYouTubeVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // --- MANEJO DE PANTALLA COMPLETA ---
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                playerAreaEl.requestFullscreen().catch(err => {
+                    alert(`Error al intentar entrar en pantalla completa: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    });
+
+    // La API de YouTube llamará a esta función cuando esté lista.
+    // No es necesario ponerla dentro del DOMContentLoaded.
+    function onYouTubeIframeAPIReady() {
+        // Esta función se deja vacía a propósito. El reproductor se inicializa
+        // bajo demanda la primera vez que se necesita reproducir un video de YouTube.
+        console.log("YouTube IFrame API está lista.");
     }
     </script>
 </body>
